@@ -1,8 +1,8 @@
 # parser.py
 
 from typing import List
-from lexer import Token
-from ast_nodes import ASTNode, NumberNode, BinaryOpNode
+from .lexer import Token
+from .ast_nodes import ASTNode, NumberNode, BinaryOpNode
 
 class Parser:
     def __init__(self, tokens: List[Token]):

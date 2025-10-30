@@ -1,6 +1,6 @@
 # evaluator.py
 
-from ast_nodes import ASTNode, NumberNode, BinaryOpNode
+from .ast_nodes import ASTNode, NumberNode, BinaryOpNode
 
 def evaluate(node: ASTNode) -> int:
     if isinstance(node, NumberNode):

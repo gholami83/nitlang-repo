@@ -19,28 +19,28 @@ class BinaryOpNode(ASTNode):
         return f"BinaryOpNode({self.left}, {self.op}, {self.right})"
 
 
-    class FunctionNode(ASTNode):
-        def __init__(self, name: str, params: list, body: ASTNode):
+class FunctionNode(ASTNode):
+    def __init__(self, name: str, params: list, body: ASTNode):
             self.name = name
             self.params = params
             self.body = body
 
-        def __repr__(self):
+    def __repr__(self):
             return f"FunctionNode({self.name}, {self.params}, {self.body})"
 
-    class CallNode(ASTNode):
-        def __init__(self, name: str, args: list):
+class CallNode(ASTNode):
+    def __init__(self, name: str, args: list):
             self.name = name
             self.args = args
 
-        def __repr__(self):
+    def __repr__(self):
             return f"CallNode({self.name}, {self.args})"
 
-    class IfNode(ASTNode):
-        def __init__(self, condition: ASTNode, then_branch: ASTNode, else_branch: ASTNode):
+class IfNode(ASTNode):
+    def __init__(self, condition: ASTNode, then_branch: ASTNode, else_branch: ASTNode):
             self.condition = condition
             self.then_branch = then_branch
             self.else_branch = else_branch
 
-        def __repr__(self):
+    def __repr__(self):
             return f"IfNode({self.condition}, {self.then_branch}, {self.else_branch})"

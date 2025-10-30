@@ -45,7 +45,7 @@ def evaluate(node: ASTNode, env: Environment) -> Any:
 
     elif isinstance(node, FunctionNode):
         env.set(node.name, node)
-        return None  
+        return None
 
     elif isinstance(node, CallNode):
         func = env.get(node.name)

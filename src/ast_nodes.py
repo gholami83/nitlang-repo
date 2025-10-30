@@ -44,3 +44,10 @@ class IfNode(ASTNode):
 
     def __repr__(self):
             return f"IfNode({self.condition}, {self.then_branch}, {self.else_branch})"
+
+class VariableNode(ASTNode):
+    def __init__(self, name: str):
+        self.name = name
+
+    def __repr__(self):
+        return f"VariableNode({self.name})"

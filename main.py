@@ -1,32 +1,30 @@
 
 from src.lexer import tokenize
 from src.parser import Parser
-from src.evaluator import evaluate
+from src.evaluator import evaluate, Environment
 
-def run(expression: str):
-    print(f"Input: {expression}")
-    tokens = tokenize(expression)
-    print(f"Tokens: {tokens}")
+def run(code: str):
+    print(f"Input:\n{code.strip()}\n")
+    tokens = tokenize(code)
+    print(f"Tokens: {tokens}\n")
     parser = Parser(tokens)
     ast = parser.parse()
-    print(f"AST: {ast}")
-    result = evaluate(ast)
-    print(f"Result: {result}")
+    print(f"AST: {ast}\n")
+
+    env = Environment()
+    result = evaluate(ast, env)
+    print(f"Result: {result}\n")
     return result
 
 if __name__ == "__main__":
-    # تست‌های نمونه
-    test_cases = [
-        "2 + 3 * 4",
-        "(2 + 3) * 4",
-        "10 - 2 / 2",
-        "5 * (3 + 2) - 1"
-    ]
+    test_code = """
+    2 - 8 * 1
+    func fact(n) =
+        if n == 0 then 1 else n * fact(n-1)
+    fact(5)
+    """
 
-    for expr in test_cases:
-        try:
-            run(expr)
-            print("-" * 40)
-        except Exception as e:
-            print(f"Error: {e}")
-            print("-" * 40)
+    try:
+        run(test_code)
+    except Exception as e:
+        print(f"Error: {e}")

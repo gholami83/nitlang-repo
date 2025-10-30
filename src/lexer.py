@@ -28,7 +28,7 @@ def tokenize(text: str) -> List[Token]:
         kind = match.lastgroup
         value = match.group()
         if kind == 'WHITESPACE':
-            continue 
+            continue
         elif kind == 'NUMBER':
             value = int(value)
         tokens.append(Token(kind, value))

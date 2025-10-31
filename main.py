@@ -1,4 +1,3 @@
-
 from src.lexer import tokenize
 from src.parser import Parser
 from src.evaluator import evaluate, Environment
@@ -18,10 +17,8 @@ def run(code: str):
 
 if __name__ == "__main__":
     test_code = """
-    2 - 8 * 1
-    func fact(n) =
-        if n == 0 then 1 else n * fact(n-1)
-    fact(5)
+    3-14/2*3
+    
     """
 
     try:

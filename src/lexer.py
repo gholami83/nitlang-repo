@@ -1,3 +1,5 @@
+# src/lexer.py
+
 import re
 from typing import List
 
@@ -6,6 +8,7 @@ TOKENS = [
     ('IF', r'if'),
     ('THEN', r'then'),
     ('ELSE', r'else'),
+    ('LET', r'let'),  
     ('NUMBER', r'\d+'),
     ('IDENTIFIER', r'[a-zA-Z_][a-zA-Z0-9_]*'),
     ('PLUS', r'\+'),
@@ -39,6 +42,5 @@ def tokenize(text: str) -> List[Token]:
             continue
         elif kind == 'NUMBER':
             value = int(value)
-
         tokens.append(Token(kind, value))
     return tokens

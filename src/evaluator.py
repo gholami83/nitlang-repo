@@ -1,5 +1,5 @@
 from typing import Any
-from .ast_nodes import ASTNode, NumberNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode
+from .ast_nodes import ASTNode, NumberNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, LetNode
 
 class Environment:
     def __init__(self, parent=None):
@@ -69,6 +69,11 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
 
     elif isinstance(node_or_nodes, VariableNode):
         return env.get(node_or_nodes.name)
+
+    elif isinstance(node_or_nodes, LetNode):
+        value = evaluate(node_or_nodes.value, env)
+        env.set(node_or_nodes.name, value)
+        return None
 
     else:
         raise TypeError(f"Unknown node type: {type(node_or_nodes)}")

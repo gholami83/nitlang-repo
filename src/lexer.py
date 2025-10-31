@@ -8,7 +8,7 @@ TOKENS = [
     ('IF', r'if'),
     ('THEN', r'then'),
     ('ELSE', r'else'),
-    ('LET', r'let'),  
+    ('LET', r'let'),
     ('NUMBER', r'\d+'),
     ('IDENTIFIER', r'[a-zA-Z_][a-zA-Z0-9_]*'),
     ('PLUS', r'\+'),

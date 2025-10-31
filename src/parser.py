@@ -1,6 +1,6 @@
 from typing import List
 from .lexer import Token
-from .ast_nodes import ASTNode, NumberNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode
+from .ast_nodes import ASTNode, NumberNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, LetNode
 
 class Parser:
     def __init__(self, tokens: List[Token]):
@@ -87,6 +87,8 @@ class Parser:
             return node
         elif token.type == 'IF':
             return self.parse_if()
+        elif token.type == 'LET':
+            return self.parse_let()
         elif token.type == 'IDENTIFIER':
             name = token.value
             self.consume('IDENTIFIER')
@@ -115,3 +117,10 @@ class Parser:
         self.consume('ELSE')
         else_branch = self.comparison()
         return IfNode(condition, then_branch, else_branch)
+
+    def parse_let(self) -> LetNode:
+        self.consume('LET')
+        name = self.consume('IDENTIFIER').value
+        self.consume('ASSIGN')
+        value = self.comparison()
+        return LetNode(name, value)

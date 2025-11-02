@@ -75,7 +75,7 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         env.set(node_or_nodes.name, value)
         return None
 
-    elif isinstance(node_or_nodes, BlockNode): 
+    elif isinstance(node_or_nodes, BlockNode):
         result = None
         for stmt in node_or_nodes.statements:
             result = evaluate(stmt, env)

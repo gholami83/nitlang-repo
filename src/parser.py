@@ -114,7 +114,10 @@ class Parser:
         self.consume('LBRACE')
         statements = []
         while self.peek().type != 'RBRACE' and self.peek().type != 'EOF':
-            stmt = self.comparison()
+            if self.peek().type == 'FUNC':
+                stmt = self.parse_function()
+            else:
+                stmt = self.comparison()
             statements.append(stmt)
         self.consume('RBRACE')
         return BlockNode(statements)

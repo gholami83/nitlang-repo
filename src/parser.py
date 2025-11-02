@@ -1,6 +1,6 @@
 from typing import List
 from .lexer import Token
-from .ast_nodes import ASTNode, NumberNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, LetNode
+from .ast_nodes import BlockNode,ASTNode, NumberNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, LetNode
 
 class Parser:
     def __init__(self, tokens: List[Token]):
@@ -85,6 +85,8 @@ class Parser:
             node = self.comparison()
             self.consume('RPAREN')
             return node
+        elif token.type == 'LBRACE':
+            return self.parse_block()
         elif token.type == 'IF':
             return self.parse_if()
         elif token.type == 'LET':
@@ -108,7 +110,6 @@ class Parser:
                 return VariableNode(name)
         else:
             raise SyntaxError(f"Unexpected token in factor: {token}")
-
     def parse_if(self) -> IfNode:
         self.consume('IF')
         condition = self.comparison()
@@ -124,3 +125,33 @@ class Parser:
         self.consume('ASSIGN')
         value = self.comparison()
         return LetNode(name, value)
+
+    def parse_block(self) -> BlockNode:
+        self.consume('LBRACE')
+        statements = []
+        while self.peek().type != 'RBRACE' and self.peek().type != 'EOF':
+            stmt = self.comparison()
+            statements.append(stmt)
+        self.consume('RBRACE')
+        return BlockNode(statements)
+
+    def parse_function(self) -> FunctionNode:
+        self.consume('FUNC')
+        name = self.consume('IDENTIFIER').value
+        self.consume('LPAREN')
+        params = []
+        if self.peek().type != 'RPAREN':
+            while True:
+                param = self.consume('IDENTIFIER').value
+                params.append(param)
+                if self.peek().type == 'COMMA':
+                    self.consume('COMMA')
+                else:
+                    break
+        self.consume('RPAREN')
+        self.consume('ASSIGN')
+        if self.peek().type == 'LBRACE':
+            body = self.parse_block()
+        else:
+            body = self.comparison()
+        return FunctionNode(name, params, body)

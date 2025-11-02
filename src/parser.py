@@ -33,23 +33,7 @@ class Parser:
                 statements.append(stmt)
         return statements
 
-    def parse_function(self) -> FunctionNode:
-        self.consume('FUNC')
-        name = self.consume('IDENTIFIER').value
-        self.consume('LPAREN')
-        params = []
-        if self.peek().type != 'RPAREN':
-            while True:
-                param = self.consume('IDENTIFIER').value
-                params.append(param)
-                if self.peek().type == 'COMMA':
-                    self.consume('COMMA')
-                else:
-                    break
-        self.consume('RPAREN')
-        self.consume('ASSIGN')
-        body = self.comparison()
-        return FunctionNode(name, params, body)
+
 
     def comparison(self) -> ASTNode:
         node = self.expr()

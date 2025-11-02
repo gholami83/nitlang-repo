@@ -76,9 +76,10 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         return None
 
     elif isinstance(node_or_nodes, BlockNode):
+        local_env = Environment(env)
         result = None
         for stmt in node_or_nodes.statements:
-            result = evaluate(stmt, env)
+            result = evaluate(stmt, local_env)
         return result
 
     else:

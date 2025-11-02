@@ -17,15 +17,11 @@ def run(code: str):
 
 if __name__ == "__main__":
     test_code = """
-func outer() = {
-    let z = 30
-    func inner() = {
-        z * 2
-    }
-    inner()
+{
+    let temp = 42
 }
-outer()
-   
+ temp  
+
     """
 
     try:

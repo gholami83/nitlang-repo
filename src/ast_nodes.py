@@ -1,5 +1,3 @@
-# src/ast_nodes.py
-
 class ASTNode:
     pass
 
@@ -59,3 +57,10 @@ class LetNode(ASTNode):
 
     def __repr__(self):
         return f"LetNode({self.name}, {self.value})"
+
+class BlockNode(ASTNode):
+    def __init__(self, statements: list):
+        self.statements = statements
+
+    def __repr__(self):
+        return f"BlockNode({self.statements})"

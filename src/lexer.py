@@ -10,7 +10,7 @@ TOKENS = [
     ('ELSE', r'else'),
     ('LET', r'let'),
     ('LBRACE', r'\{'),
-    ('RBRACE', r'\}'),   
+    ('RBRACE', r'\}'),
     ('NUMBER', r'\d+'),
     ('IDENTIFIER', r'[a-zA-Z_][a-zA-Z0-9_]*'),
     ('PLUS', r'\+'),

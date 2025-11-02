@@ -17,10 +17,21 @@ def run(code: str):
 
 if __name__ == "__main__":
     test_code = """
-{
-    let temp = 42
+let base = 2
+
+func power(exp) = {
+    if exp == 0 then 1 else {
+        let current = base
+        current * power(exp - 1)
+    }
 }
- temp  
+
+func wrapper() = {
+    let base = 3  
+    power(2)  
+}
+
+wrapper()
 
     """
 

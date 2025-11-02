@@ -18,10 +18,11 @@ class BinaryOpNode(ASTNode):
         return f"BinaryOpNode({self.left}, {self.op}, {self.right})"
 
 class FunctionNode(ASTNode):
-    def __init__(self, name: str, params: list, body: ASTNode):
+    def __init__(self, name: str, params: list, body: ASTNode, closure_env=None):
         self.name = name
         self.params = params
         self.body = body
+        self.closure_env = closure_env  # ← محیط زمان تعریف تابع
 
     def __repr__(self):
         return f"FunctionNode({self.name}, {self.params}, {self.body})"

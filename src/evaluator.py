@@ -1,5 +1,7 @@
 from typing import Any
-from .ast_nodes import ASTNode, NumberNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, LetNode
+from .ast_nodes import ASTNode, NumberNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, LetNode, \
+    BlockNode
+
 
 class Environment:
     def __init__(self, parent=None):
@@ -15,6 +17,7 @@ class Environment:
 
     def set(self, name: str, value: Any):
         self.vars[name] = value
+
 
 def evaluate(node_or_nodes, env: Environment) -> Any:
     if isinstance(node_or_nodes, list):
@@ -52,7 +55,13 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
             return evaluate(node_or_nodes.else_branch, env)
 
     elif isinstance(node_or_nodes, FunctionNode):
-        env.set(node_or_nodes.name, node_or_nodes)
+        func_with_env = FunctionNode(
+            node_or_nodes.name,
+            node_or_nodes.params,
+            node_or_nodes.body,
+            env
+        )
+        env.set(node_or_nodes.name, func_with_env)
         return None
 
     elif isinstance(node_or_nodes, CallNode):
@@ -62,7 +71,8 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         args = [evaluate(arg, env) for arg in node_or_nodes.args]
         if len(args) != len(func.params):
             raise TypeError(f"Function {node_or_nodes.name} expected {len(func.params)} args, got {len(args)}")
-        local_env = Environment(env)
+
+        local_env = Environment(func.closure_env)
         for param, arg in zip(func.params, args):
             local_env.set(param, arg)
         return evaluate(func.body, local_env)
@@ -74,6 +84,13 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         value = evaluate(node_or_nodes.value, env)
         env.set(node_or_nodes.name, value)
         return None
+
+    elif isinstance(node_or_nodes, BlockNode):
+        local_env = Environment(env)
+        result = None
+        for stmt in node_or_nodes.statements:
+            result = evaluate(stmt, local_env)
+        return result
 
     else:
         raise TypeError(f"Unknown node type: {type(node_or_nodes)}")

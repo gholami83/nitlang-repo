@@ -1,6 +1,6 @@
 from typing import List
 from .lexer import Token
-from .ast_nodes import BlockNode,ASTNode, NumberNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, LetNode
+from .ast_nodes import ASTNode, NumberNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, LetNode, BlockNode, RefNode, AssignRefNode
 
 class Parser:
     def __init__(self, tokens: List[Token]):
@@ -32,8 +32,6 @@ class Parser:
                 stmt = self.comparison()
                 statements.append(stmt)
         return statements
-
-
 
     def comparison(self) -> ASTNode:
         node = self.expr()
@@ -75,25 +73,20 @@ class Parser:
             return self.parse_if()
         elif token.type == 'LET':
             return self.parse_let()
+        elif token.type == 'REF':
+            return self.parse_ref()
         elif token.type == 'IDENTIFIER':
             name = token.value
             self.consume('IDENTIFIER')
-            if self.peek().type == 'LPAREN':
-                self.consume('LPAREN')
-                args = []
-                if self.peek().type != 'RPAREN':
-                    while True:
-                        args.append(self.comparison())
-                        if self.peek().type == 'COMMA':
-                            self.consume('COMMA')
-                        else:
-                            break
-                self.consume('RPAREN')
-                return CallNode(name, args)
+            # بررسی اینکه آیا بعداً := می‌آید
+            if self.peek().type == 'ASSIGN_REF':
+                # این شناسه یک ارجاع است که مقدار جدیدی گرفته
+                return self.parse_assign_ref(name)
             else:
                 return VariableNode(name)
         else:
             raise SyntaxError(f"Unexpected token in factor: {token}")
+
     def parse_if(self) -> IfNode:
         self.consume('IF')
         condition = self.comparison()
@@ -142,3 +135,14 @@ class Parser:
         else:
             body = self.comparison()
         return FunctionNode(name, params, body)
+
+    def parse_ref(self) -> RefNode:
+        self.consume('REF')
+        name = self.consume('IDENTIFIER').value
+        return RefNode(name)
+
+    def parse_assign_ref(self, name: str) -> AssignRefNode:
+        self.consume('ASSIGN_REF')
+        value = self.comparison()
+        ref_node = VariableNode(name)
+        return AssignRefNode(ref_node, value)

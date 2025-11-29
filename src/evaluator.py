@@ -1,6 +1,6 @@
 from typing import Any
 from .ast_nodes import ASTNode, NumberNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, LetNode, \
-    BlockNode
+    BlockNode, RefNode, AssignRefNode
 
 
 class Environment:
@@ -18,6 +18,15 @@ class Environment:
     def set(self, name: str, value: Any):
         self.vars[name] = value
 
+    def set_ref(self, name: str, value: Any):
+        if name in self.vars:
+            self.vars[name] = value
+            return
+        if self.parent:
+            self.parent.set_ref(name, value)
+            return
+        raise NameError(f"Name '{name}' is not defined")
+
 
 def evaluate(node_or_nodes, env: Environment) -> Any:
     if isinstance(node_or_nodes, list):
@@ -32,16 +41,21 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
     elif isinstance(node_or_nodes, BinaryOpNode):
         left_val = evaluate(node_or_nodes.left, env)
         right_val = evaluate(node_or_nodes.right, env)
+        has_float = isinstance(left_val, float) or isinstance(right_val, float)
+
         if node_or_nodes.op == 'PLUS':
-            return left_val + right_val
+            result = left_val + right_val
+            return float(result) if has_float else result
         elif node_or_nodes.op == 'MINUS':
-            return left_val - right_val
+            result = left_val - right_val
+            return float(result) if has_float else result
         elif node_or_nodes.op == 'MUL':
-            return left_val * right_val
+            result = left_val * right_val
+            return float(result) if has_float else result
         elif node_or_nodes.op == 'DIV':
             if right_val == 0:
                 raise ZeroDivisionError("Division by zero")
-            return left_val // right_val
+            return left_val / right_val
         elif node_or_nodes.op == 'EQUALS':
             return 1 if left_val == right_val else 0
         else:
@@ -91,6 +105,15 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         for stmt in node_or_nodes.statements:
             result = evaluate(stmt, local_env)
         return result
+
+    elif isinstance(node_or_nodes, RefNode):
+        return node_or_nodes.name
+
+    elif isinstance(node_or_nodes, AssignRefNode):
+        ref_name = node_or_nodes.ref.name
+        value = evaluate(node_or_nodes.value, env)
+        env.set_ref(ref_name, value)
+        return None
 
     else:
         raise TypeError(f"Unknown node type: {type(node_or_nodes)}")

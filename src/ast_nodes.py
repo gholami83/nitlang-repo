@@ -1,8 +1,10 @@
+from typing import Union
+
 class ASTNode:
     pass
 
 class NumberNode(ASTNode):
-    def __init__(self, value: int):
+    def __init__(self, value: Union[int, float]):
         self.value = value
 
     def __repr__(self):
@@ -65,3 +67,18 @@ class BlockNode(ASTNode):
 
     def __repr__(self):
         return f"BlockNode({self.statements})"
+
+class RefNode(ASTNode):
+    def __init__(self, name: str):
+        self.name = name
+
+    def __repr__(self):
+        return f"RefNode({self.name})"
+
+class AssignRefNode(ASTNode):
+    def __init__(self, ref: ASTNode, value: ASTNode):
+        self.ref = ref
+        self.value = value
+
+    def __repr__(self):
+        return f"AssignRefNode({self.ref}, {self.value})"

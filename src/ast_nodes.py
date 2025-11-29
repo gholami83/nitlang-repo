@@ -22,7 +22,7 @@ class FunctionNode(ASTNode):
         self.name = name
         self.params = params
         self.body = body
-        self.closure_env = closure_env  # ← محیط زمان تعریف تابع
+        self.closure_env = closure_env
 
     def __repr__(self):
         return f"FunctionNode({self.name}, {self.params}, {self.body})"

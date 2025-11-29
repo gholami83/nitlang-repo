@@ -1,5 +1,3 @@
-# src/lexer.py
-
 import re
 from typing import List
 
@@ -9,15 +7,17 @@ TOKENS = [
     ('THEN', r'then'),
     ('ELSE', r'else'),
     ('LET', r'let'),
+    ('REF', r'ref'),
     ('LBRACE', r'\{'),
     ('RBRACE', r'\}'),
-    ('NUMBER', r'\d+'),
+    ('NUMBER', r'\d*\.\d+|\d+\.|\d+'),
     ('IDENTIFIER', r'[a-zA-Z_][a-zA-Z0-9_]*'),
     ('PLUS', r'\+'),
     ('MINUS', r'-'),
     ('MUL', r'\*'),
     ('DIV', r'/'),
     ('EQUALS', r'=='),
+    ('ASSIGN_REF', r':='),
     ('ASSIGN', r'='),
     ('LPAREN', r'\('),
     ('RPAREN', r'\)'),
@@ -43,6 +43,9 @@ def tokenize(text: str) -> List[Token]:
         if kind == 'WHITESPACE':
             continue
         elif kind == 'NUMBER':
-            value = int(value)
+            if '.' in value:
+                value = float(value)
+            else:
+                value = int(value)
         tokens.append(Token(kind, value))
     return tokens

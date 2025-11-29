@@ -78,10 +78,11 @@ class Parser:
         elif token.type == 'IDENTIFIER':
             name = token.value
             self.consume('IDENTIFIER')
-            # بررسی اینکه آیا بعداً := می‌آید
             if self.peek().type == 'ASSIGN_REF':
-                # این شناسه یک ارجاع است که مقدار جدیدی گرفته
-                return self.parse_assign_ref(name)
+                self.consume('ASSIGN_REF')
+                value = self.comparison()
+                ref_node = VariableNode(name)
+                return AssignRefNode(ref_node, value)
             else:
                 return VariableNode(name)
         else:
@@ -140,9 +141,3 @@ class Parser:
         self.consume('REF')
         name = self.consume('IDENTIFIER').value
         return RefNode(name)
-
-    def parse_assign_ref(self, name: str) -> AssignRefNode:
-        self.consume('ASSIGN_REF')
-        value = self.comparison()
-        ref_node = VariableNode(name)
-        return AssignRefNode(ref_node, value)

@@ -18,13 +18,11 @@ class Environment:
     def set(self, name: str, value: Any):
         self.vars[name] = value
 
-    def set_ref(self, name: str, value: Any):
+    def get_var_ref(self, name: str):
         if name in self.vars:
-            self.vars[name] = value
-            return
+            return (self, name)
         if self.parent:
-            self.parent.set_ref(name, value)
-            return
+            return self.parent.get_var_ref(name)
         raise NameError(f"Name '{name}' is not defined")
 
 
@@ -107,12 +105,17 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         return result
 
     elif isinstance(node_or_nodes, RefNode):
-        return node_or_nodes.name
+        return env.get_var_ref(node_or_nodes.name)
 
     elif isinstance(node_or_nodes, AssignRefNode):
         ref_name = node_or_nodes.ref.name
+        ref = env.get_var_ref(ref_name)
         value = evaluate(node_or_nodes.value, env)
-        env.set_ref(ref_name, value)
+        if isinstance(ref, tuple) and len(ref) == 2:
+            ref_env, ref_var_name = ref
+            ref_env.set(ref_var_name, value)
+        else:
+            raise TypeError("Left side of ':=' must be a reference")
         return None
 
     else:

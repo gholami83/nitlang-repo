@@ -1,4 +1,3 @@
-# src/evaluator.py
 
 from typing import Any
 from .ast_nodes import ASTNode, NumberNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, LetNode, \
@@ -56,7 +55,6 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
             if right_val == 0:
                 raise ZeroDivisionError("Division by zero")
             return left_val / right_val
-        # ---------- عملگرهای مقایسه‌ای جدید ----------
         elif node_or_nodes.op == 'EQUALS':
             return 1 if left_val == right_val else 0
         elif node_or_nodes.op == 'NOT_EQUALS':
@@ -118,6 +116,19 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
 
     elif isinstance(node_or_nodes, LetNode):
         value = evaluate(node_or_nodes.value, env)
+
+        if node_or_nodes.type_node:
+            expected_type = node_or_nodes.type_node.type_name
+            if expected_type == 'int':
+                if not isinstance(value, int):
+                    raise TypeError(f"Expected int, got {type(value).__name__}")
+            elif expected_type == 'bool':
+                if not isinstance(value, int):
+                    raise TypeError(f"Expected bool (as int), got {type(value).__name__}")
+            elif expected_type == 'string':
+                if not isinstance(value, str):
+                    raise TypeError(f"Expected string, got {type(value).__name__}")
+
         env.set(node_or_nodes.name, value)
         return None
 

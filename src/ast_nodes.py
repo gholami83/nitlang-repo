@@ -92,3 +92,10 @@ class AssignRefNode(ASTNode):
 
     def __repr__(self):
         return f"AssignRefNode({self.ref}, {self.value})"
+
+class StringNode(ASTNode):
+    def __init__(self, value: str):
+        self.value = value
+
+    def __repr__(self):
+        return f"StringNode({self.value})"

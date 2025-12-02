@@ -58,7 +58,7 @@ def tokenize(text: str) -> List[Token]:
                 value = float(value)
             else:
                 value = int(value)
-        elif kind == 'STRING':  
+        elif kind == 'STRING':
             value = value[1:-1]
         tokens.append(Token(kind, value))
     return tokens

@@ -1,3 +1,4 @@
+
 from typing import Union
 
 class ASTNode:
@@ -53,13 +54,22 @@ class VariableNode(ASTNode):
     def __repr__(self):
         return f"VariableNode({self.name})"
 
-class LetNode(ASTNode):
-    def __init__(self, name: str, value: ASTNode):
-        self.name = name
-        self.value = value
+# ---------- جدید: TypeNode ----------
+class TypeNode(ASTNode):
+    def __init__(self, type_name: str):
+        self.type_name = type_name
 
     def __repr__(self):
-        return f"LetNode({self.name}, {self.value})"
+        return f"TypeNode({self.type_name})"
+
+class LetNode(ASTNode):
+    def __init__(self, name: str, value: ASTNode, type_node: TypeNode = None):
+        self.name = name
+        self.value = value
+        self.type_node = type_node
+
+    def __repr__(self):
+        return f"LetNode({self.name}, {self.value}, {self.type_node})"
 
 class BlockNode(ASTNode):
     def __init__(self, statements: list):

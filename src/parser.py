@@ -1,9 +1,7 @@
-# src/parser.py
-
 from typing import List
 from .lexer import Token
 from .ast_nodes import ASTNode, NumberNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, LetNode, \
-    BlockNode, RefNode, AssignRefNode
+    BlockNode, RefNode, AssignRefNode, TypeNode
 
 
 class Parser:
@@ -58,7 +56,6 @@ class Parser:
             return AssignRefNode(node, right)
         return node
 
-    # ---------- تغییر: پشتیبانی از عملگرهای مقایسه‌ای ----------
     def comparison(self) -> ASTNode:
         node = self.expr()
         while self.peek().type in ('EQUALS', 'NOT_EQUALS', 'LESS', 'LESS_EQ', 'GREATER', 'GREATER_EQ'):
@@ -133,9 +130,21 @@ class Parser:
     def parse_let(self) -> LetNode:
         self.consume('LET')
         name = self.consume('IDENTIFIER').value
+
+        type_node = None
+        if self.peek().type == 'COLON':
+            self.consume('COLON')
+            type_token = self.peek()
+            if type_token.type in ('INT', 'BOOL', 'STRING_TYPE'):
+                type_name = type_token.value
+                self.consume(type_token.type)
+                type_node = TypeNode(type_name)
+            else:
+                raise SyntaxError(f"Unknown type: {type_token.value}")
+
         self.consume('ASSIGN')
         value = self.comparison()
-        return LetNode(name, value)
+        return LetNode(name, value, type_node)
 
     def parse_block(self) -> BlockNode:
         self.consume('LBRACE')

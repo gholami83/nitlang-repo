@@ -17,9 +17,10 @@ def run(code: str):
 
 if __name__ == "__main__":
     test_code = """
-let x:int = 10
+let x:int = 42
 let y:bool = 1
-y
+let z:string = "hello"
+x
 
 
     """

@@ -1,6 +1,10 @@
+# src/parser.py
+
 from typing import List
 from .lexer import Token
-from .ast_nodes import ASTNode, NumberNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, LetNode, BlockNode, RefNode, AssignRefNode
+from .ast_nodes import ASTNode, NumberNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, LetNode, \
+    BlockNode, RefNode, AssignRefNode
+
 
 class Parser:
     def __init__(self, tokens: List[Token]):
@@ -29,16 +33,38 @@ class Parser:
                 stmt = self.parse_function()
                 statements.append(stmt)
             else:
-                stmt = self.comparison()
+                stmt = self.statement()
                 statements.append(stmt)
         return statements
 
+    def statement(self) -> ASTNode:
+        if self.peek().type == 'IDENTIFIER':
+            pos_backup = self.pos
+            name_token = self.consume('IDENTIFIER')
+            if self.peek().type == 'ASSIGN_REF':
+                self.pos = pos_backup
+                return self.assignment_ref()
+            else:
+                self.pos = pos_backup
+        return self.comparison()
+
+    def assignment_ref(self) -> ASTNode:
+        node = self.factor()
+        if self.peek().type == 'ASSIGN_REF':
+            self.consume('ASSIGN_REF')
+            right = self.comparison()
+            if not isinstance(node, VariableNode):
+                raise SyntaxError("Left side of ':=' must be a variable")
+            return AssignRefNode(node, right)
+        return node
+
+    # ---------- تغییر: پشتیبانی از عملگرهای مقایسه‌ای ----------
     def comparison(self) -> ASTNode:
         node = self.expr()
-        if self.peek().type == 'EQUALS':
-            self.consume('EQUALS')
+        while self.peek().type in ('EQUALS', 'NOT_EQUALS', 'LESS', 'LESS_EQ', 'GREATER', 'GREATER_EQ'):
+            op = self.consume().type
             right = self.expr()
-            node = BinaryOpNode(node, 'EQUALS', right)
+            node = BinaryOpNode(node, op, right)
         return node
 
     def expr(self) -> ASTNode:
@@ -78,11 +104,18 @@ class Parser:
         elif token.type == 'IDENTIFIER':
             name = token.value
             self.consume('IDENTIFIER')
-            if self.peek().type == 'ASSIGN_REF':
-                self.consume('ASSIGN_REF')
-                value = self.comparison()
-                ref_node = VariableNode(name)
-                return AssignRefNode(ref_node, value)
+            if self.peek().type == 'LPAREN':
+                self.consume('LPAREN')
+                args = []
+                if self.peek().type != 'RPAREN':
+                    while True:
+                        args.append(self.comparison())
+                        if self.peek().type == 'COMMA':
+                            self.consume('COMMA')
+                        else:
+                            break
+                self.consume('RPAREN')
+                return CallNode(name, args)
             else:
                 return VariableNode(name)
         else:
@@ -92,9 +125,9 @@ class Parser:
         self.consume('IF')
         condition = self.comparison()
         self.consume('THEN')
-        then_branch = self.comparison()
+        then_branch = self.statement()
         self.consume('ELSE')
-        else_branch = self.comparison()
+        else_branch = self.statement()
         return IfNode(condition, then_branch, else_branch)
 
     def parse_let(self) -> LetNode:
@@ -111,7 +144,7 @@ class Parser:
             if self.peek().type == 'FUNC':
                 stmt = self.parse_function()
             else:
-                stmt = self.comparison()
+                stmt = self.statement()
             statements.append(stmt)
         self.consume('RBRACE')
         return BlockNode(statements)
@@ -119,17 +152,20 @@ class Parser:
     def parse_function(self) -> FunctionNode:
         self.consume('FUNC')
         name = self.consume('IDENTIFIER').value
-        self.consume('LPAREN')
+
         params = []
-        if self.peek().type != 'RPAREN':
-            while True:
-                param = self.consume('IDENTIFIER').value
-                params.append(param)
-                if self.peek().type == 'COMMA':
-                    self.consume('COMMA')
-                else:
-                    break
-        self.consume('RPAREN')
+        if self.peek().type == 'LPAREN':
+            self.consume('LPAREN')
+            if self.peek().type != 'RPAREN':
+                while True:
+                    param = self.consume('IDENTIFIER').value
+                    params.append(param)
+                    if self.peek().type == 'COMMA':
+                        self.consume('COMMA')
+                    else:
+                        break
+            self.consume('RPAREN')
+
         self.consume('ASSIGN')
         if self.peek().type == 'LBRACE':
             body = self.parse_block()

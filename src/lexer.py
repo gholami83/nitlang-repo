@@ -1,3 +1,5 @@
+# src/lexer.py
+
 import re
 from typing import List
 
@@ -16,6 +18,12 @@ TOKENS = [
     ('MINUS', r'-'),
     ('MUL', r'\*'),
     ('DIV', r'/'),
+    # ---------- عملگرهای مقایسه‌ای (ترتیب مهم است!) ----------
+    ('LESS_EQ', r'<='),   # قبل از LESS
+    ('LESS', r'<'),
+    ('GREATER_EQ', r'>='), # قبل از GREATER
+    ('GREATER', r'>'),
+    ('NOT_EQUALS', r'!='),
     ('EQUALS', r'=='),
     ('ASSIGN_REF', r':='),
     ('ASSIGN', r'='),

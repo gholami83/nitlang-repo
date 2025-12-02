@@ -1,3 +1,5 @@
+# src/evaluator.py
+
 from typing import Any
 from .ast_nodes import ASTNode, NumberNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, LetNode, \
     BlockNode, RefNode, AssignRefNode
@@ -54,8 +56,19 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
             if right_val == 0:
                 raise ZeroDivisionError("Division by zero")
             return left_val / right_val
+        # ---------- عملگرهای مقایسه‌ای جدید ----------
         elif node_or_nodes.op == 'EQUALS':
             return 1 if left_val == right_val else 0
+        elif node_or_nodes.op == 'NOT_EQUALS':
+            return 1 if left_val != right_val else 0
+        elif node_or_nodes.op == 'LESS':
+            return 1 if left_val < right_val else 0
+        elif node_or_nodes.op == 'LESS_EQ':
+            return 1 if left_val <= right_val else 0
+        elif node_or_nodes.op == 'GREATER':
+            return 1 if left_val > right_val else 0
+        elif node_or_nodes.op == 'GREATER_EQ':
+            return 1 if left_val >= right_val else 0
         else:
             raise ValueError(f"Unknown operator: {node_or_nodes.op}")
 
@@ -90,7 +103,18 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         return evaluate(func.body, local_env)
 
     elif isinstance(node_or_nodes, VariableNode):
-        return env.get(node_or_nodes.name)
+        value = env.get(node_or_nodes.name)
+
+        def resolve_value(val, depth=0):
+            if depth > 10:
+                raise RuntimeError("Reference chain too deep")
+            if isinstance(val, tuple) and len(val) == 2:
+                target_env, target_name = val
+                actual_value = target_env.get(target_name)
+                return resolve_value(actual_value, depth + 1)
+            return val
+
+        return resolve_value(value)
 
     elif isinstance(node_or_nodes, LetNode):
         value = evaluate(node_or_nodes.value, env)
@@ -108,14 +132,17 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         return env.get_var_ref(node_or_nodes.name)
 
     elif isinstance(node_or_nodes, AssignRefNode):
-        ref_name = node_or_nodes.ref.name
-        ref = env.get_var_ref(ref_name)
-        value = evaluate(node_or_nodes.value, env)
-        if isinstance(ref, tuple) and len(ref) == 2:
-            ref_env, ref_var_name = ref
-            ref_env.set(ref_var_name, value)
-        else:
-            raise TypeError("Left side of ':=' must be a reference")
+        left_node = node_or_nodes.ref
+        if not isinstance(left_node, VariableNode):
+            raise TypeError("Left side of ':=' must be a variable")
+
+        ref_value = env.get(left_node.name)
+        if not isinstance(ref_value, tuple) or len(ref_value) != 2:
+            raise TypeError(f"'{left_node.name}' is not a reference")
+
+        target_env, target_name = ref_value
+        new_value = evaluate(node_or_nodes.value, env)
+        target_env.set(target_name, new_value)
         return None
 
     else:

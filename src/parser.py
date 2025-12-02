@@ -1,7 +1,7 @@
 from typing import List
 from .lexer import Token
 from .ast_nodes import ASTNode, NumberNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, LetNode, \
-    BlockNode, RefNode, AssignRefNode, TypeNode
+    BlockNode, RefNode, AssignRefNode, TypeNode, StringNode
 
 
 class Parser:
@@ -113,6 +113,9 @@ class Parser:
                             break
                 self.consume('RPAREN')
                 return CallNode(name, args)
+            elif token.type == 'STRING':
+                self.consume('STRING')
+                return StringNode(token.value)
             else:
                 return VariableNode(name)
         else:

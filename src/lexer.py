@@ -1,3 +1,4 @@
+
 import re
 from typing import List
 
@@ -11,6 +12,9 @@ TOKENS = [
     ('LBRACE', r'\{'),
     ('RBRACE', r'\}'),
     ('NUMBER', r'\d*\.\d+|\d+\.|\d+'),
+    ('INT', r'int'),
+    ('BOOL', r'bool'),
+    ('STRING_TYPE', r'string'),
     ('IDENTIFIER', r'[a-zA-Z_][a-zA-Z0-9_]*'),
     ('PLUS', r'\+'),
     ('MINUS', r'-'),
@@ -28,9 +32,6 @@ TOKENS = [
     ('RPAREN', r'\)'),
     ('COMMA', r','),
     ('COLON', r':'),
-    ('INT', r'int'),
-    ('BOOL', r'bool'),
-    ('STRING_TYPE', r'string'),
     ('WHITESPACE', r'\s+'),
 ]
 

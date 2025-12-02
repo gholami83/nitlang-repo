@@ -1,4 +1,3 @@
-
 from typing import Union
 
 class ASTNode:
@@ -10,6 +9,13 @@ class NumberNode(ASTNode):
 
     def __repr__(self):
         return f"NumberNode({self.value})"
+
+class StringNode(ASTNode):
+    def __init__(self, value: str):
+        self.value = value
+
+    def __repr__(self):
+        return f"StringNode({self.value})"
 
 class BinaryOpNode(ASTNode):
     def __init__(self, left: 'ASTNode', op: str, right: 'ASTNode'):
@@ -54,7 +60,6 @@ class VariableNode(ASTNode):
     def __repr__(self):
         return f"VariableNode({self.name})"
 
-# ---------- جدید: TypeNode ----------
 class TypeNode(ASTNode):
     def __init__(self, type_name: str):
         self.type_name = type_name
@@ -92,10 +97,3 @@ class AssignRefNode(ASTNode):
 
     def __repr__(self):
         return f"AssignRefNode({self.ref}, {self.value})"
-
-class StringNode(ASTNode):
-    def __init__(self, value: str):
-        self.value = value
-
-    def __repr__(self):
-        return f"StringNode({self.value})"

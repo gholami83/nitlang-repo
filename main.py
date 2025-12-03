@@ -25,10 +25,15 @@ def run(code: str):
 
 if __name__ == "__main__":
     test_code = """
-    let x:int = 42
-    let y:bool = false
-    let z:string = "hello"
-    y
+let global_x:int = 100
+
+func test() = {
+    let local_x:int = 200
+    local_x = 300
+    local_x
+}
+
+test()
     """
 
     try:

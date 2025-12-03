@@ -1,6 +1,6 @@
 from typing import Any
-from .ast_nodes import ASTNode, NumberNode, StringNode, BoolNode, BinaryOpNode, FunctionNode, CallNode, IfNode, \
-    VariableNode, LetNode, BlockNode, RefNode, AssignRefNode
+from .ast_nodes import ASTNode, NumberNode, StringNode, BoolNode, BinaryOpNode, AssignNode, FunctionNode, CallNode, \
+    IfNode, VariableNode, LetNode, BlockNode, RefNode, AssignRefNode
 
 
 class Environment:
@@ -41,6 +41,11 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
 
     elif isinstance(node_or_nodes, BoolNode):
         return node_or_nodes.value
+
+    elif isinstance(node_or_nodes, AssignNode):
+        value = evaluate(node_or_nodes.value, env)
+        env.set(node_or_nodes.name, value)
+        return value
 
     elif isinstance(node_or_nodes, BinaryOpNode):
         left_val = evaluate(node_or_nodes.left, env)
@@ -152,13 +157,31 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         if not isinstance(left_node, VariableNode):
             raise TypeError("Left side of ':=' must be a variable")
 
-        ref_value = env.get(left_node.name)
-        if not isinstance(ref_value, tuple) or len(ref_value) != 2:
-            raise TypeError(f"'{left_node.name}' is not a reference")
+        def resolve_ref(current_env, name):
+            try:
+                value = current_env.get(name)
+                if isinstance(value, tuple) and len(value) == 2:
+                    target_env, target_name = value
+                    try:
+                        next_value = target_env.get(target_name)
+                        if isinstance(next_value, tuple) and len(next_value) == 2:
+                            return resolve_ref(target_env, target_name)
+                        else:
+                            return (target_env, target_name)
+                    except:
+                        return (target_env, target_name)
+                else:
+                    return (current_env, name)
+            except:
+                return (current_env, name)
 
-        target_env, target_name = ref_value
-        new_value = evaluate(node_or_nodes.value, env)
-        target_env.set(target_name, new_value)
+        try:
+            target_env, target_name = resolve_ref(env, left_node.name)
+            new_value = evaluate(node_or_nodes.value, env)
+            target_env.set(target_name, new_value)
+        except Exception as e:
+            raise TypeError(f"Cannot assign to reference '{left_node.name}': {e}")
+
         return None
 
     else:

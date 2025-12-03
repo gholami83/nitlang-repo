@@ -33,6 +33,14 @@ class BinaryOpNode(ASTNode):
     def __repr__(self):
         return f"BinaryOpNode({self.left}, {self.op}, {self.right})"
 
+class AssignNode(ASTNode):
+    def __init__(self, name: str, value: ASTNode):
+        self.name = name
+        self.value = value
+
+    def __repr__(self):
+        return f"AssignNode({self.name}, {self.value})"
+
 class FunctionNode(ASTNode):
     def __init__(self, name: str, params: list, body: ASTNode, closure_env=None):
         self.name = name

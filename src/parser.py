@@ -1,7 +1,7 @@
 from typing import List
 from .lexer import Token
-from .ast_nodes import ASTNode, NumberNode, StringNode, BoolNode, BinaryOpNode, FunctionNode, CallNode, IfNode, \
-    VariableNode, LetNode, BlockNode, RefNode, AssignRefNode, TypeNode
+from .ast_nodes import ASTNode, NumberNode, StringNode, BoolNode, BinaryOpNode, AssignNode, FunctionNode, CallNode, \
+    IfNode, VariableNode, LetNode, BlockNode, RefNode, AssignRefNode, TypeNode
 
 
 class Parser:
@@ -65,11 +65,21 @@ class Parser:
         return node
 
     def expr(self) -> ASTNode:
-        node = self.term()
+        node = self.assignment()
         while self.peek().type in ('PLUS', 'MINUS'):
             op = self.consume().type
             right = self.term()
             node = BinaryOpNode(node, op, right)
+        return node
+
+    def assignment(self) -> ASTNode:
+        node = self.term()
+        if self.peek().type == 'ASSIGN':
+            self.consume('ASSIGN')
+            if not isinstance(node, VariableNode):
+                raise SyntaxError("Left side of '=' must be a variable")
+            right = self.expr()
+            return AssignNode(node.name, right)
         return node
 
     def term(self) -> ASTNode:

@@ -112,3 +112,29 @@ class AssignRefNode(ASTNode):
 
     def __repr__(self):
         return f"AssignRefNode({self.ref}, {self.value})"
+
+class ClassNode(ASTNode):
+    def __init__(self, name: str, fields: list, methods: dict):
+        self.name = name
+        self.fields = fields
+        self.methods = methods
+
+    def __repr__(self):
+        return f"ClassNode({self.name}, {self.fields}, {self.methods})"
+
+class NewNode(ASTNode):
+    def __init__(self, class_name: str, args: list):
+        self.class_name = class_name
+        self.args = args
+
+    def __repr__(self):
+        return f"NewNode({self.class_name}, {self.args})"
+
+class MethodCallNode(ASTNode):
+    def __init__(self, obj: ASTNode, method_name: str, args: list):
+        self.obj = obj
+        self.method_name = method_name
+        self.args = args
+
+    def __repr__(self):
+        return f"MethodCallNode({self.obj}, {self.method_name}, {self.args})"

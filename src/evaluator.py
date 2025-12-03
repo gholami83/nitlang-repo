@@ -1,16 +1,19 @@
 from typing import Any
 from .ast_nodes import ASTNode, NumberNode, StringNode, BoolNode, BinaryOpNode, AssignNode, FunctionNode, CallNode, \
-    IfNode, VariableNode, LetNode, BlockNode, RefNode, AssignRefNode
+    IfNode, VariableNode, LetNode, BlockNode, RefNode, AssignRefNode, ClassNode, NewNode, MethodCallNode
 
 
 class Environment:
     def __init__(self, parent=None):
         self.parent = parent
         self.vars = {}
+        self.objects = {}
 
     def get(self, name: str) -> Any:
         if name in self.vars:
             return self.vars[name]
+        if name in self.objects:
+            return self.objects[name]
         if self.parent:
             return self.parent.get(name)
         raise NameError(f"Name '{name}' is not defined")
@@ -18,12 +21,23 @@ class Environment:
     def set(self, name: str, value: Any):
         self.vars[name] = value
 
+    def set_object(self, name: str, obj: Any):
+        self.objects[name] = obj
+
     def get_var_ref(self, name: str):
         if name in self.vars:
+            return (self, name)
+        if name in self.objects:
             return (self, name)
         if self.parent:
             return self.parent.get_var_ref(name)
         raise NameError(f"Name '{name}' is not defined")
+
+
+class ClassInstance:
+    def __init__(self, class_name: str, env: Environment):
+        self.class_name = class_name
+        self.env = env
 
 
 def evaluate(node_or_nodes, env: Environment) -> Any:
@@ -109,6 +123,45 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         for param, arg in zip(func.params, args):
             local_env.set(param, arg)
         return evaluate(func.body, local_env)
+
+    elif isinstance(node_or_nodes, ClassNode):
+        env.set_object(node_or_nodes.name, node_or_nodes)
+        return None
+
+    elif isinstance(node_or_nodes, NewNode):
+        cls = env.get(node_or_nodes.class_name)
+        if not isinstance(cls, ClassNode):
+            raise TypeError(f"{node_or_nodes.class_name} is not a class")
+
+        obj_env = Environment(env)
+        for i, field in enumerate(cls.fields):
+            if i < len(node_or_nodes.args):
+                obj_env.set(field.name, evaluate(node_or_nodes.args[i], env))
+            else:
+                obj_env.set(field.name, 0)
+
+        instance = ClassInstance(cls.name, obj_env)
+        return instance
+
+    elif isinstance(node_or_nodes, MethodCallNode):
+        obj = evaluate(node_or_nodes.obj, env)
+        if not isinstance(obj, ClassInstance):
+            raise TypeError("Object must be an instance of a class")
+
+        cls = env.get(obj.class_name)
+        if not isinstance(cls, ClassNode):
+            raise TypeError(f"Class {obj.class_name} not found")
+
+        method = cls.methods.get(node_or_nodes.method_name)
+        if not method:
+            raise AttributeError(f"Method '{node_or_nodes.method_name}' not found")
+
+        local_env = Environment(obj.env)
+        args = [evaluate(arg, env) for arg in node_or_nodes.args]
+        for param, arg in zip(method.params, args):
+            local_env.set(param, arg)
+
+        return evaluate(method.body, local_env)
 
     elif isinstance(node_or_nodes, VariableNode):
         value = env.get(node_or_nodes.name)

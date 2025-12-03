@@ -33,7 +33,10 @@ TOKENS = [
     ('LPAREN', r'\('),
     ('RPAREN', r'\)'),
     ('COMMA', r','),
+    ('DOT', r'\.'),
     ('COLON', r':'),
+    ('CLASS', r'class'),
+    ('NEW', r'new'),         
     ('WHITESPACE', r'\s+'),
 ]
 

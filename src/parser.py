@@ -1,7 +1,7 @@
 from typing import List
 from .lexer import Token
-from .ast_nodes import ASTNode, NumberNode, StringNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, \
-    LetNode, BlockNode, RefNode, AssignRefNode, TypeNode
+from .ast_nodes import ASTNode, NumberNode, StringNode, BoolNode, BinaryOpNode, FunctionNode, CallNode, IfNode, \
+    VariableNode, LetNode, BlockNode, RefNode, AssignRefNode, TypeNode
 
 
 class Parser:
@@ -88,6 +88,12 @@ class Parser:
         elif token.type == 'STRING':
             self.consume('STRING')
             return StringNode(token.value)
+        elif token.type == 'TRUE':
+            self.consume('TRUE')
+            return BoolNode(True)
+        elif token.type == 'FALSE':
+            self.consume('FALSE')
+            return BoolNode(False)
         elif token.type == 'LPAREN':
             self.consume('LPAREN')
             node = self.comparison()

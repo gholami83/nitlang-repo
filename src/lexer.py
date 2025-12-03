@@ -12,6 +12,8 @@ TOKENS = [
     ('RBRACE', r'\}'),
     ('NUMBER', r'\d*\.\d+|\d+\.|\d+'),
     ('STRING', r'"[^"]*"'),
+    ('TRUE', r'true'),
+    ('FALSE', r'false'),
     ('INT', r'int'),
     ('BOOL', r'bool'),
     ('STRING_TYPE', r'string'),
@@ -59,5 +61,9 @@ def tokenize(text: str) -> List[Token]:
                 value = int(value)
         elif kind == 'STRING':
             value = value[1:-1]
+        elif kind == 'TRUE':
+            value = True
+        elif kind == 'FALSE':
+            value = False
         tokens.append(Token(kind, value))
     return tokens

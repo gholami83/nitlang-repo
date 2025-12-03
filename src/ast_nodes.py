@@ -17,6 +17,13 @@ class StringNode(ASTNode):
     def __repr__(self):
         return f"StringNode({self.value})"
 
+class BoolNode(ASTNode):
+    def __init__(self, value: bool):
+        self.value = value
+
+    def __repr__(self):
+        return f"BoolNode({self.value})"
+
 class BinaryOpNode(ASTNode):
     def __init__(self, left: 'ASTNode', op: str, right: 'ASTNode'):
         self.left = left

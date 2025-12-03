@@ -1,6 +1,6 @@
 from typing import Any
-from .ast_nodes import ASTNode, NumberNode, StringNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, \
-    LetNode, BlockNode, RefNode, AssignRefNode
+from .ast_nodes import ASTNode, NumberNode, StringNode, BoolNode, BinaryOpNode, FunctionNode, CallNode, IfNode, \
+    VariableNode, LetNode, BlockNode, RefNode, AssignRefNode
 
 
 class Environment:
@@ -37,6 +37,9 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         return node_or_nodes.value
 
     elif isinstance(node_or_nodes, StringNode):
+        return node_or_nodes.value
+
+    elif isinstance(node_or_nodes, BoolNode):
         return node_or_nodes.value
 
     elif isinstance(node_or_nodes, BinaryOpNode):
@@ -125,8 +128,8 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
                 if not isinstance(value, int):
                     raise TypeError(f"Expected int, got {type(value).__name__}")
             elif expected_type == 'bool':
-                if not isinstance(value, int):
-                    raise TypeError(f"Expected bool (as int), got {type(value).__name__}")
+                if not isinstance(value, bool):
+                    raise TypeError(f"Expected bool (true/false), got {type(value).__name__}")
             elif expected_type == 'string':
                 if not isinstance(value, str):
                     raise TypeError(f"Expected string, got {type(value).__name__}")

@@ -36,7 +36,7 @@ TOKENS = [
     ('DOT', r'\.'),
     ('COLON', r':'),
     ('CLASS', r'class'),
-    ('NEW', r'new'),         
+    ('NEW', r'new'),
     ('WHITESPACE', r'\s+'),
 ]
 

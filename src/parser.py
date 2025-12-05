@@ -1,5 +1,3 @@
-# src/parser.py
-
 from typing import List
 from .lexer import Token
 from .ast_nodes import ASTNode, NumberNode, StringNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, \
@@ -41,18 +39,15 @@ class Parser:
                 statements.append(stmt)
         return statements
 
-    # ---------- تغییر اصلی: statement با پشتیبانی کامل از هر دو نوع تخصیص ----------
     def statement(self) -> ASTNode:
         pos_backup = self.pos
 
         if self.peek().type == 'IDENTIFIER':
             name_token = self.consume('IDENTIFIER')
             if self.peek().type == 'ASSIGN_REF':
-                # پشتیبانی از ref := value
                 self.pos = pos_backup
                 return self.assignment_ref()
             elif self.peek().type == 'ASSIGN':
-                # پشتیبانی از x = value
                 self.pos = pos_backup
                 name = self.consume('IDENTIFIER').value
                 self.consume('ASSIGN')

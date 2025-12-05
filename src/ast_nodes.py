@@ -17,13 +17,6 @@ class StringNode(ASTNode):
     def __repr__(self):
         return f"StringNode({self.value})"
 
-class BoolNode(ASTNode):
-    def __init__(self, value: bool):
-        self.value = value
-
-    def __repr__(self):
-        return f"BoolNode({self.value})"
-
 class BinaryOpNode(ASTNode):
     def __init__(self, left: 'ASTNode', op: str, right: 'ASTNode'):
         self.left = left
@@ -32,14 +25,6 @@ class BinaryOpNode(ASTNode):
 
     def __repr__(self):
         return f"BinaryOpNode({self.left}, {self.op}, {self.right})"
-
-class AssignNode(ASTNode):
-    def __init__(self, name: str, value: ASTNode):
-        self.name = name
-        self.value = value
-
-    def __repr__(self):
-        return f"AssignNode({self.name}, {self.value})"
 
 class FunctionNode(ASTNode):
     def __init__(self, name: str, params: list, body: ASTNode, closure_env=None):
@@ -138,3 +123,19 @@ class MethodCallNode(ASTNode):
 
     def __repr__(self):
         return f"MethodCallNode({self.obj}, {self.method_name}, {self.args})"
+
+class AssignNode(ASTNode):
+    def __init__(self, name: str, value: ASTNode):
+        self.name = name
+        self.value = value
+
+    def __repr__(self):
+        return f"AssignNode({self.name}, {self.value})"
+
+class FieldAccessNode(ASTNode):
+    def __init__(self, obj: ASTNode, field_name: str):
+        self.obj = obj
+        self.field_name = field_name
+
+    def __repr__(self):
+        return f"FieldAccessNode({self.obj}, {self.field_name})"

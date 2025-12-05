@@ -1,7 +1,8 @@
 from typing import List
 from .lexer import Token
-from .ast_nodes import ASTNode, NumberNode, StringNode, BoolNode, BinaryOpNode, AssignNode, FunctionNode, CallNode, \
-    IfNode, VariableNode, LetNode, BlockNode, RefNode, AssignRefNode, ClassNode, NewNode, MethodCallNode, TypeNode
+from .ast_nodes import ASTNode, NumberNode, StringNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, \
+    LetNode, BlockNode, RefNode, AssignRefNode, TypeNode, ClassNode, NewNode, MethodCallNode, AssignNode, \
+    FieldAccessNode
 
 
 class Parser:
@@ -27,48 +28,26 @@ class Parser:
     def parse_program(self) -> list:
         statements = []
         while self.pos < len(self.tokens):
-            if self.peek().type == 'FUNC':
-                stmt = self.parse_function()
-                statements.append(stmt)
-            elif self.peek().type == 'CLASS':
+            if self.peek().type == 'CLASS':
                 stmt = self.parse_class()
+                statements.append(stmt)
+            elif self.peek().type == 'FUNC':
+                stmt = self.parse_function()
                 statements.append(stmt)
             else:
                 stmt = self.statement()
                 statements.append(stmt)
         return statements
 
-    def parse_class(self) -> ClassNode:
-        self.consume('CLASS')
-        class_name = self.consume('IDENTIFIER').value
-        self.consume('LBRACE')
-
-        fields = []
-        methods = {}
-
-        while self.peek().type != 'RBRACE' and self.peek().type != 'EOF':
-            if self.peek().type == 'LET':
-                field = self.parse_let()
-                fields.append(field)
-            elif self.peek().type == 'FUNC':
-                method = self.parse_function()
-                methods[method.name] = method
-            else:
-                raise SyntaxError(f"Expected field or method, got {self.peek().type}")
-
-        self.consume('RBRACE')
-        return ClassNode(class_name, fields, methods)
-
     def statement(self) -> ASTNode:
-        if self.peek().type == 'IDENTIFIER':
-            pos_backup = self.pos
-            name_token = self.consume('IDENTIFIER')
-            if self.peek().type == 'ASSIGN_REF':
-                self.pos = pos_backup
-                return self.assignment_ref()
-            else:
-                self.pos = pos_backup
-        return self.comparison()
+        node = self.factor()
+
+        if self.peek().type == 'ASSIGN' and isinstance(node, VariableNode):
+            self.consume('ASSIGN')
+            value = self.comparison()
+            return AssignNode(node.name, value)
+
+        return node
 
     def assignment_ref(self) -> ASTNode:
         node = self.factor()
@@ -89,21 +68,11 @@ class Parser:
         return node
 
     def expr(self) -> ASTNode:
-        node = self.assignment()
+        node = self.term()
         while self.peek().type in ('PLUS', 'MINUS'):
             op = self.consume().type
             right = self.term()
             node = BinaryOpNode(node, op, right)
-        return node
-
-    def assignment(self) -> ASTNode:
-        node = self.term()
-        if self.peek().type == 'ASSIGN':
-            self.consume('ASSIGN')
-            if not isinstance(node, VariableNode):
-                raise SyntaxError("Left side of '=' must be a variable")
-            right = self.expr()
-            return AssignNode(node.name, right)
         return node
 
     def term(self) -> ASTNode:
@@ -122,31 +91,15 @@ class Parser:
         elif token.type == 'STRING':
             self.consume('STRING')
             return StringNode(token.value)
-        elif token.type == 'TRUE':
-            self.consume('TRUE')
-            return BoolNode(True)
-        elif token.type == 'FALSE':
-            self.consume('FALSE')
-            return BoolNode(False)
-        elif token.type == 'NEW':
-            self.consume('NEW')
-            class_name = self.consume('IDENTIFIER').value
-            self.consume('LPAREN')
-            args = []
-            if self.peek().type != 'RPAREN':
-                while True:
-                    args.append(self.comparison())
-                    if self.peek().type == 'COMMA':
-                        self.consume('COMMA')
-                    else:
-                        break
-            self.consume('RPAREN')
-            return NewNode(class_name, args)
         elif token.type == 'LPAREN':
             self.consume('LPAREN')
             node = self.comparison()
             self.consume('RPAREN')
             return node
+        elif token.type == 'NEW':
+            return self.parse_new()
+        elif token.type == 'CLASS':
+            return self.parse_class()
         elif token.type == 'LBRACE':
             return self.parse_block()
         elif token.type == 'IF':
@@ -158,39 +111,35 @@ class Parser:
         elif token.type == 'IDENTIFIER':
             name = token.value
             self.consume('IDENTIFIER')
-            if self.peek().type == 'DOT':
+            if self.peek().type == 'LPAREN':
+                return CallNode(name, self.parse_args())
+            elif self.peek().type == 'DOT':
                 self.consume('DOT')
-                method_name = self.consume('IDENTIFIER').value
+                member_name = self.consume('IDENTIFIER').value
                 if self.peek().type == 'LPAREN':
-                    self.consume('LPAREN')
-                    args = []
-                    if self.peek().type != 'RPAREN':
-                        while True:
-                            args.append(self.comparison())
-                            if self.peek().type == 'COMMA':
-                                self.consume('COMMA')
-                            else:
-                                break
-                    self.consume('RPAREN')
-                    return MethodCallNode(VariableNode(name), method_name, args)
+                    args = self.parse_args()
+                    obj_node = VariableNode(name)
+                    return MethodCallNode(obj_node, member_name, args)
                 else:
-                    return VariableNode(f"{name}.{method_name}")
-            elif self.peek().type == 'LPAREN':
-                self.consume('LPAREN')
-                args = []
-                if self.peek().type != 'RPAREN':
-                    while True:
-                        args.append(self.comparison())
-                        if self.peek().type == 'COMMA':
-                            self.consume('COMMA')
-                        else:
-                            break
-                self.consume('RPAREN')
-                return CallNode(name, args)
+                    obj_node = VariableNode(name)
+                    return FieldAccessNode(obj_node, member_name)
             else:
                 return VariableNode(name)
         else:
             raise SyntaxError(f"Unexpected token in factor: {token}")
+
+    def parse_args(self) -> list:
+        self.consume('LPAREN')
+        args = []
+        if self.peek().type != 'RPAREN':
+            while True:
+                args.append(self.comparison())
+                if self.peek().type == 'COMMA':
+                    self.consume('COMMA')
+                else:
+                    break
+        self.consume('RPAREN')
+        return args
 
     def parse_if(self) -> IfNode:
         self.consume('IF')
@@ -216,8 +165,22 @@ class Parser:
             else:
                 raise SyntaxError(f"Unknown type: {type_token.value}")
 
-        self.consume('ASSIGN')
-        value = self.comparison()
+        in_class = hasattr(self, '_in_class') and self._in_class
+
+        if self.peek().type == 'ASSIGN':
+            self.consume('ASSIGN')
+            value = self.comparison()
+        else:
+            if in_class:
+                value = None
+            else:
+                if type_node and type_node.type_name == 'int':
+                    value = NumberNode(0)
+                elif type_node and type_node.type_name == 'string':
+                    value = StringNode("")
+                else:
+                    value = NumberNode(0)
+
         return LetNode(name, value, type_node)
 
     def parse_block(self) -> BlockNode:
@@ -226,8 +189,6 @@ class Parser:
         while self.peek().type != 'RBRACE' and self.peek().type != 'EOF':
             if self.peek().type == 'FUNC':
                 stmt = self.parse_function()
-            elif self.peek().type == 'CLASS':
-                stmt = self.parse_class()
             else:
                 stmt = self.statement()
             statements.append(stmt)
@@ -262,3 +223,33 @@ class Parser:
         self.consume('REF')
         name = self.consume('IDENTIFIER').value
         return RefNode(name)
+
+    def parse_class(self) -> ClassNode:
+        self.consume('CLASS')
+        name = self.consume('IDENTIFIER').value
+        self.consume('LBRACE')
+
+        old_in_class = getattr(self, '_in_class', False)
+        self._in_class = True
+
+        fields = []
+        methods = {}
+        while self.peek().type != 'RBRACE':
+            if self.peek().type == 'LET':
+                field = self.parse_let()
+                fields.append(field)
+            elif self.peek().type == 'FUNC':
+                method = self.parse_function()
+                methods[method.name] = method
+            else:
+                raise SyntaxError(f"Expected LET or FUNC in class, got {self.peek().type}")
+
+        self._in_class = old_in_class
+        self.consume('RBRACE')
+        return ClassNode(name, fields, methods)
+
+    def parse_new(self) -> NewNode:
+        self.consume('NEW')
+        class_name = self.consume('IDENTIFIER').value
+        args = self.parse_args()
+        return NewNode(class_name, args)

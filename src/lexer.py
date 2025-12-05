@@ -2,6 +2,8 @@ import re
 from typing import List
 
 TOKENS = [
+    ('CLASS', r'class'),
+    ('NEW', r'new'),
     ('FUNC', r'func'),
     ('IF', r'if'),
     ('THEN', r'then'),
@@ -12,8 +14,6 @@ TOKENS = [
     ('RBRACE', r'\}'),
     ('NUMBER', r'\d*\.\d+|\d+\.|\d+'),
     ('STRING', r'"[^"]*"'),
-    ('TRUE', r'true'),
-    ('FALSE', r'false'),
     ('INT', r'int'),
     ('BOOL', r'bool'),
     ('STRING_TYPE', r'string'),
@@ -35,8 +35,6 @@ TOKENS = [
     ('COMMA', r','),
     ('DOT', r'\.'),
     ('COLON', r':'),
-    ('CLASS', r'class'),
-    ('NEW', r'new'),
     ('WHITESPACE', r'\s+'),
 ]
 
@@ -64,9 +62,5 @@ def tokenize(text: str) -> List[Token]:
                 value = int(value)
         elif kind == 'STRING':
             value = value[1:-1]
-        elif kind == 'TRUE':
-            value = True
-        elif kind == 'FALSE':
-            value = False
         tokens.append(Token(kind, value))
     return tokens

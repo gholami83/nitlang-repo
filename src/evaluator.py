@@ -1,19 +1,16 @@
 from typing import Any
-from .ast_nodes import ASTNode, NumberNode, StringNode, BoolNode, BinaryOpNode, AssignNode, FunctionNode, CallNode, \
-    IfNode, VariableNode, LetNode, BlockNode, RefNode, AssignRefNode, ClassNode, NewNode, MethodCallNode
+from .ast_nodes import ASTNode, NumberNode, StringNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, \
+    LetNode, BlockNode, RefNode, AssignRefNode, AssignNode, ClassNode, NewNode, MethodCallNode, FieldAccessNode
 
 
 class Environment:
     def __init__(self, parent=None):
         self.parent = parent
         self.vars = {}
-        self.objects = {}
 
     def get(self, name: str) -> Any:
         if name in self.vars:
             return self.vars[name]
-        if name in self.objects:
-            return self.objects[name]
         if self.parent:
             return self.parent.get(name)
         raise NameError(f"Name '{name}' is not defined")
@@ -21,23 +18,19 @@ class Environment:
     def set(self, name: str, value: Any):
         self.vars[name] = value
 
-    def set_object(self, name: str, obj: Any):
-        self.objects[name] = obj
-
     def get_var_ref(self, name: str):
         if name in self.vars:
-            return (self, name)
-        if name in self.objects:
             return (self, name)
         if self.parent:
             return self.parent.get_var_ref(name)
         raise NameError(f"Name '{name}' is not defined")
 
 
-class ClassInstance:
-    def __init__(self, class_name: str, env: Environment):
+class ObjectInstance:
+    def __init__(self, class_name: str, fields: dict, methods: dict):
         self.class_name = class_name
-        self.env = env
+        self.fields = fields
+        self.methods = methods
 
 
 def evaluate(node_or_nodes, env: Environment) -> Any:
@@ -52,14 +45,6 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
 
     elif isinstance(node_or_nodes, StringNode):
         return node_or_nodes.value
-
-    elif isinstance(node_or_nodes, BoolNode):
-        return node_or_nodes.value
-
-    elif isinstance(node_or_nodes, AssignNode):
-        value = evaluate(node_or_nodes.value, env)
-        env.set(node_or_nodes.name, value)
-        return value
 
     elif isinstance(node_or_nodes, BinaryOpNode):
         left_val = evaluate(node_or_nodes.left, env)
@@ -125,59 +110,95 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         return evaluate(func.body, local_env)
 
     elif isinstance(node_or_nodes, ClassNode):
-        env.set_object(node_or_nodes.name, node_or_nodes)
+        env.set(node_or_nodes.name, node_or_nodes)
         return None
 
     elif isinstance(node_or_nodes, NewNode):
-        cls = env.get(node_or_nodes.class_name)
-        if not isinstance(cls, ClassNode):
+        class_def = env.get(node_or_nodes.class_name)
+        if not isinstance(class_def, ClassNode):
             raise TypeError(f"{node_or_nodes.class_name} is not a class")
 
-        obj_env = Environment(env)
-        for i, field in enumerate(cls.fields):
-            if i < len(node_or_nodes.args):
-                obj_env.set(field.name, evaluate(node_or_nodes.args[i], env))
-            else:
-                obj_env.set(field.name, 0)
+        field_env = Environment()
 
-        instance = ClassInstance(cls.name, obj_env)
-        return instance
+        for i, field_node in enumerate(class_def.fields):
+            field_name = field_node.name
+            if i < len(node_or_nodes.args):
+                value = evaluate(node_or_nodes.args[i], env)
+            else:
+                if field_node.type_node and field_node.type_node.type_name == 'int':
+                    value = 0
+                elif field_node.type_node and field_node.type_node.type_name == 'string':
+                    value = ""
+                else:
+                    value = 0
+
+            field_env.set(field_name, value)
+
+        fields = {}
+        for field_name in field_env.vars:
+            fields[field_name] = (field_env, field_name)
+
+        return ObjectInstance(class_def.name, fields, class_def.methods)
 
     elif isinstance(node_or_nodes, MethodCallNode):
         obj = evaluate(node_or_nodes.obj, env)
-        if not isinstance(obj, ClassInstance):
-            raise TypeError("Object must be an instance of a class")
+        if not isinstance(obj, ObjectInstance):
+            raise TypeError("Can only call methods on objects")
 
-        cls = env.get(obj.class_name)
-        if not isinstance(cls, ClassNode):
-            raise TypeError(f"Class {obj.class_name} not found")
-
-        method = cls.methods.get(node_or_nodes.method_name)
+        method = obj.methods.get(node_or_nodes.method_name)
         if not method:
-            raise AttributeError(f"Method '{node_or_nodes.method_name}' not found")
+            raise AttributeError(f"Method {node_or_nodes.method_name} not found")
 
-        local_env = Environment(obj.env)
+        method_env = Environment(env)
+
+        for field_name, (field_env, actual_name) in obj.fields.items():
+            method_env.set(field_name, (field_env, actual_name))
+
         args = [evaluate(arg, env) for arg in node_or_nodes.args]
         for param, arg in zip(method.params, args):
-            local_env.set(param, arg)
+            method_env.set(param, arg)
 
-        return evaluate(method.body, local_env)
+        result = evaluate(method.body, method_env)
+        return result
+
+    elif isinstance(node_or_nodes, FieldAccessNode):
+        obj = evaluate(node_or_nodes.obj, env)
+        if not isinstance(obj, ObjectInstance):
+            raise TypeError("Can only access fields on objects")
+        if node_or_nodes.field_name not in obj.fields:
+            raise AttributeError(f"Field {node_or_nodes.field_name} not found")
+
+        field_env, field_name = obj.fields[node_or_nodes.field_name]
+        return field_env.get(field_name)
 
     elif isinstance(node_or_nodes, VariableNode):
         value = env.get(node_or_nodes.name)
 
-        def resolve_value(val, depth=0):
-            if depth > 10:
-                raise RuntimeError("Reference chain too deep")
-            if isinstance(val, tuple) and len(val) == 2:
-                target_env, target_name = val
-                actual_value = target_env.get(target_name)
-                return resolve_value(actual_value, depth + 1)
-            return val
+        if isinstance(value, tuple) and len(value) == 2:
+            field_env, field_name = value
+            return field_env.get(field_name)
 
-        return resolve_value(value)
+        return value
+
+    elif isinstance(node_or_nodes, AssignNode):
+        value = evaluate(node_or_nodes.value, env)
+
+        try:
+            current_value = env.get(node_or_nodes.name)
+            if isinstance(current_value, tuple) and len(current_value) == 2:
+                field_env, field_name = current_value
+                field_env.set(field_name, value)
+                return None
+        except NameError:
+            pass
+
+        env.set(node_or_nodes.name, value)
+        return None
 
     elif isinstance(node_or_nodes, LetNode):
+        if node_or_nodes.value is None:
+            return None
+
         value = evaluate(node_or_nodes.value, env)
 
         if node_or_nodes.type_node:
@@ -186,8 +207,8 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
                 if not isinstance(value, int):
                     raise TypeError(f"Expected int, got {type(value).__name__}")
             elif expected_type == 'bool':
-                if not isinstance(value, bool):
-                    raise TypeError(f"Expected bool (true/false), got {type(value).__name__}")
+                if not isinstance(value, int):
+                    raise TypeError(f"Expected bool (as int), got {type(value).__name__}")
             elif expected_type == 'string':
                 if not isinstance(value, str):
                     raise TypeError(f"Expected string, got {type(value).__name__}")
@@ -210,31 +231,13 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         if not isinstance(left_node, VariableNode):
             raise TypeError("Left side of ':=' must be a variable")
 
-        def resolve_ref(current_env, name):
-            try:
-                value = current_env.get(name)
-                if isinstance(value, tuple) and len(value) == 2:
-                    target_env, target_name = value
-                    try:
-                        next_value = target_env.get(target_name)
-                        if isinstance(next_value, tuple) and len(next_value) == 2:
-                            return resolve_ref(target_env, target_name)
-                        else:
-                            return (target_env, target_name)
-                    except:
-                        return (target_env, target_name)
-                else:
-                    return (current_env, name)
-            except:
-                return (current_env, name)
+        ref_value = env.get(left_node.name)
+        if not isinstance(ref_value, tuple) or len(ref_value) != 2:
+            raise TypeError(f"'{left_node.name}' is not a reference")
 
-        try:
-            target_env, target_name = resolve_ref(env, left_node.name)
-            new_value = evaluate(node_or_nodes.value, env)
-            target_env.set(target_name, new_value)
-        except Exception as e:
-            raise TypeError(f"Cannot assign to reference '{left_node.name}': {e}")
-
+        target_env, target_name = ref_value
+        new_value = evaluate(node_or_nodes.value, env)
+        target_env.set(target_name, new_value)
         return None
 
     else:

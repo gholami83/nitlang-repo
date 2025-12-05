@@ -25,15 +25,21 @@ def run(code: str):
 
 if __name__ == "__main__":
     test_code = """
-let global_x:int = 100
-
-func test() = {
-    let local_x:int = 200
-    local_x = 300
-    local_x
+class Point {
+    let x:int
+    let y:int
+    let a:string 
+    func move(dx, dy) = {
+        x = x + dx
+        y = y + dy
+        a = "moved"
+        a
+    }
 }
 
-test()
+let p = new Point(2,3)
+p.move(1,1)
+
     """
 
     try:

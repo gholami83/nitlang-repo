@@ -1,12 +1,21 @@
+from typing import Union
+
 class ASTNode:
     pass
 
 class NumberNode(ASTNode):
-    def __init__(self, value: int):
+    def __init__(self, value: Union[int, float]):
         self.value = value
 
     def __repr__(self):
         return f"NumberNode({self.value})"
+
+class StringNode(ASTNode):
+    def __init__(self, value: str):
+        self.value = value
+
+    def __repr__(self):
+        return f"StringNode({self.value})"
 
 class BinaryOpNode(ASTNode):
     def __init__(self, left: 'ASTNode', op: str, right: 'ASTNode'):
@@ -22,7 +31,7 @@ class FunctionNode(ASTNode):
         self.name = name
         self.params = params
         self.body = body
-        self.closure_env = closure_env  # ← محیط زمان تعریف تابع
+        self.closure_env = closure_env
 
     def __repr__(self):
         return f"FunctionNode({self.name}, {self.params}, {self.body})"
@@ -51,13 +60,21 @@ class VariableNode(ASTNode):
     def __repr__(self):
         return f"VariableNode({self.name})"
 
-class LetNode(ASTNode):
-    def __init__(self, name: str, value: ASTNode):
-        self.name = name
-        self.value = value
+class TypeNode(ASTNode):
+    def __init__(self, type_name: str):
+        self.type_name = type_name
 
     def __repr__(self):
-        return f"LetNode({self.name}, {self.value})"
+        return f"TypeNode({self.type_name})"
+
+class LetNode(ASTNode):
+    def __init__(self, name: str, value: ASTNode, type_node: TypeNode = None):
+        self.name = name
+        self.value = value
+        self.type_node = type_node
+
+    def __repr__(self):
+        return f"LetNode({self.name}, {self.value}, {self.type_node})"
 
 class BlockNode(ASTNode):
     def __init__(self, statements: list):
@@ -65,3 +82,60 @@ class BlockNode(ASTNode):
 
     def __repr__(self):
         return f"BlockNode({self.statements})"
+
+class RefNode(ASTNode):
+    def __init__(self, name: str):
+        self.name = name
+
+    def __repr__(self):
+        return f"RefNode({self.name})"
+
+class AssignRefNode(ASTNode):
+    def __init__(self, ref: ASTNode, value: ASTNode):
+        self.ref = ref
+        self.value = value
+
+    def __repr__(self):
+        return f"AssignRefNode({self.ref}, {self.value})"
+
+class ClassNode(ASTNode):
+    def __init__(self, name: str, fields: list, methods: dict):
+        self.name = name
+        self.fields = fields
+        self.methods = methods
+
+    def __repr__(self):
+        return f"ClassNode({self.name}, {self.fields}, {self.methods})"
+
+class NewNode(ASTNode):
+    def __init__(self, class_name: str, args: list):
+        self.class_name = class_name
+        self.args = args
+
+    def __repr__(self):
+        return f"NewNode({self.class_name}, {self.args})"
+
+class MethodCallNode(ASTNode):
+    def __init__(self, obj: ASTNode, method_name: str, args: list):
+        self.obj = obj
+        self.method_name = method_name
+        self.args = args
+
+    def __repr__(self):
+        return f"MethodCallNode({self.obj}, {self.method_name}, {self.args})"
+
+class AssignNode(ASTNode):
+    def __init__(self, name: str, value: ASTNode):
+        self.name = name
+        self.value = value
+
+    def __repr__(self):
+        return f"AssignNode({self.name}, {self.value})"
+
+class FieldAccessNode(ASTNode):
+    def __init__(self, obj: ASTNode, field_name: str):
+        self.obj = obj
+        self.field_name = field_name
+
+    def __repr__(self):
+        return f"FieldAccessNode({self.obj}, {self.field_name})"

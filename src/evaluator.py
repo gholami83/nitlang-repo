@@ -1,5 +1,3 @@
-# src/evaluator.py
-
 from typing import Any
 from .ast_nodes import ASTNode, NumberNode, StringNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, \
     LetNode, BlockNode, RefNode, AssignRefNode, AssignNode, ClassNode, NewNode, MethodCallNode, FieldAccessNode
@@ -158,7 +156,6 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
 
         return ObjectInstance(class_def.name, fields, methods)
 
-    # ---------- تغییر اصلی: MethodCallNode با دسترسی به Scope سراسری ----------
     elif isinstance(node_or_nodes, MethodCallNode):
         obj = evaluate(node_or_nodes.obj, env)
         if not isinstance(obj, ObjectInstance):
@@ -168,18 +165,14 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         if not method:
             raise AttributeError(f"Method {node_or_nodes.method_name} not found")
 
-        # محیط متد با دسترسی به محیط سراسری (env)
         method_env = Environment(env)
 
-        # اضافه کردن فیلدها
         for field_name, (field_env, actual_name) in obj.fields.items():
             method_env.set(field_name, (field_env, actual_name))
 
-        # اضافه کردن متدها
         for method_name, method_obj in obj.methods.items():
             method_env.set(method_name, method_obj)
 
-        # ارسال آرگومان‌ها
         args = [evaluate(arg, env) for arg in node_or_nodes.args]
         for param, arg in zip(method.params, args):
             method_env.set(param, arg)

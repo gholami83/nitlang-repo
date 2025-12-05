@@ -1,3 +1,5 @@
+# src/evaluator.py
+
 from typing import Any
 from .ast_nodes import ASTNode, NumberNode, StringNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, \
     LetNode, BlockNode, RefNode, AssignRefNode, AssignNode, ClassNode, NewNode, MethodCallNode, FieldAccessNode
@@ -138,8 +140,25 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         for field_name in field_env.vars:
             fields[field_name] = (field_env, field_name)
 
-        return ObjectInstance(class_def.name, fields, class_def.methods)
+        class_env = Environment()
 
+        for field_name, (field_env, actual_name) in fields.items():
+            class_env.set(field_name, (field_env, actual_name))
+
+        methods = {}
+        for method_name, method_node in class_def.methods.items():
+            method_with_env = FunctionNode(
+                method_name,
+                method_node.params,
+                method_node.body,
+                class_env
+            )
+            methods[method_name] = method_with_env
+            class_env.set(method_name, method_with_env)
+
+        return ObjectInstance(class_def.name, fields, methods)
+
+    # ---------- تغییر اصلی: MethodCallNode با دسترسی به Scope سراسری ----------
     elif isinstance(node_or_nodes, MethodCallNode):
         obj = evaluate(node_or_nodes.obj, env)
         if not isinstance(obj, ObjectInstance):
@@ -149,11 +168,18 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         if not method:
             raise AttributeError(f"Method {node_or_nodes.method_name} not found")
 
+        # محیط متد با دسترسی به محیط سراسری (env)
         method_env = Environment(env)
 
+        # اضافه کردن فیلدها
         for field_name, (field_env, actual_name) in obj.fields.items():
             method_env.set(field_name, (field_env, actual_name))
 
+        # اضافه کردن متدها
+        for method_name, method_obj in obj.methods.items():
+            method_env.set(method_name, method_obj)
+
+        # ارسال آرگومان‌ها
         args = [evaluate(arg, env) for arg in node_or_nodes.args]
         for param, arg in zip(method.params, args):
             method_env.set(param, arg)
@@ -182,6 +208,17 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
 
     elif isinstance(node_or_nodes, AssignNode):
         value = evaluate(node_or_nodes.value, env)
+
+        current_env = env
+        found = False
+        while current_env is not None:
+            if node_or_nodes.name in current_env.vars:
+                found = True
+                break
+            current_env = current_env.parent
+
+        if not found:
+            raise NameError(f"Variable '{node_or_nodes.name}' is not defined. Use 'let' to declare variables.")
 
         try:
             current_value = env.get(node_or_nodes.name)

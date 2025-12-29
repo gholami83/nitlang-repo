@@ -19,8 +19,19 @@ def run(code: str):
 
 if __name__ == "__main__":
     test_code = """
-    let nums = [1,2,3,4,5]
-    map (lambda x -> x*2) nums
+let global_factor = 2
+let call_count = 0
+let call_ref = ref call_count
+
+let process = lambda x -> {
+    call_ref := call_ref + 1
+    x * global_factor
+}
+
+let numbers = [1, 2, 3, 4, 5]
+let processed = map(process, numbers)
+
+processed[0] + processed[1] + call_count
     """
 
     try:

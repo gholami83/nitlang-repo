@@ -2,7 +2,7 @@ from typing import List
 from .lexer import Token
 from .ast_nodes import ASTNode, NumberNode, StringNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, \
     LetNode, BlockNode, RefNode, AssignRefNode, TypeNode, ClassNode, NewNode, MethodCallNode, AssignNode, \
-    FieldAccessNode, ArrayNode, LambdaNode
+    FieldAccessNode, ArrayNode, LambdaNode, IndexNode
 
 
 class Parser:
@@ -124,6 +124,15 @@ class Parser:
         elif token.type == 'IDENTIFIER':
             name = token.value
             self.consume('IDENTIFIER')
+
+            node = VariableNode(name)
+
+            while self.peek().type == 'LBRACKET':
+                self.consume('LBRACKET')
+                index = self.comparison()
+                self.consume('RBRACKET')
+                node = IndexNode(node, index)
+
             if self.peek().type == 'LPAREN':
                 return CallNode(name, self.parse_args())
             elif self.peek().type == 'DOT':
@@ -131,13 +140,11 @@ class Parser:
                 member_name = self.consume('IDENTIFIER').value
                 if self.peek().type == 'LPAREN':
                     args = self.parse_args()
-                    obj_node = VariableNode(name)
-                    return MethodCallNode(obj_node, member_name, args)
+                    return MethodCallNode(node, member_name, args)
                 else:
-                    obj_node = VariableNode(name)
-                    return FieldAccessNode(obj_node, member_name)
+                    return FieldAccessNode(node, member_name)
             else:
-                return VariableNode(name)
+                return node
         else:
             raise SyntaxError(f"Unexpected token in factor: {token}")
 

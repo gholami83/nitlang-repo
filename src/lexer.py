@@ -18,6 +18,7 @@ TOKENS = [
     ('RBRACE', r'\}'),
     ('LBRACKET', r'\['),
     ('RBRACKET', r'\]'),
+    ('ARROW', r'->'),
     ('NUMBER', r'\d*\.\d+|\d+\.|\d+'),
     ('STRING', r'"[^"]*"'),
     ('IDENTIFIER', r'[a-zA-Z_][a-zA-Z0-9_]*'),
@@ -37,7 +38,6 @@ TOKENS = [
     ('RPAREN', r'\)'),
     ('COMMA', r','),
     ('DOT', r'\.'),
-    ('ARROW', r'->'),
     ('COLON', r':'),
     ('WHITESPACE', r'\s+'),
 ]

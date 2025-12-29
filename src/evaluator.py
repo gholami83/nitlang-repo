@@ -1,7 +1,7 @@
 from typing import Any
 from .ast_nodes import ASTNode, NumberNode, StringNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, \
     LetNode, BlockNode, RefNode, AssignRefNode, AssignNode, ClassNode, NewNode, MethodCallNode, FieldAccessNode, \
-    ArrayNode, LambdaNode
+    ArrayNode, LambdaNode, IndexNode
 
 
 class Environment:
@@ -51,6 +51,19 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
             return evaluate(node_or_nodes.body, local_env)
 
         return lambda_func
+
+    if isinstance(node_or_nodes, IndexNode):
+        array_val = evaluate(node_or_nodes.array, env)
+        index_val = evaluate(node_or_nodes.index, env)
+
+        if not isinstance(array_val, list):
+            raise TypeError("Indexing only supported on arrays")
+        if not isinstance(index_val, int):
+            raise TypeError("Array index must be an integer")
+        if index_val < 0 or index_val >= len(array_val):
+            raise IndexError(f"Array index {index_val} out of bounds")
+
+        return array_val[index_val]
 
     if isinstance(node_or_nodes, NumberNode):
         return node_or_nodes.value

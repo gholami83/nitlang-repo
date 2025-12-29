@@ -154,3 +154,11 @@ class LambdaNode(ASTNode):
 
     def __repr__(self):
         return f"LambdaNode({self.param}, {self.body})"
+
+class IndexNode(ASTNode):
+    def __init__(self, array: ASTNode, index: ASTNode):
+        self.array = array
+        self.index = index
+
+    def __repr__(self):
+        return f"IndexNode({self.array}, {self.index})"

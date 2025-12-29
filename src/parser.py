@@ -2,7 +2,7 @@ from typing import List
 from .lexer import Token
 from .ast_nodes import ASTNode, NumberNode, StringNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, \
     LetNode, BlockNode, RefNode, AssignRefNode, TypeNode, ClassNode, NewNode, MethodCallNode, AssignNode, \
-    FieldAccessNode
+    FieldAccessNode, ArrayNode, LambdaNode
 
 
 class Parser:
@@ -100,6 +100,8 @@ class Parser:
         elif token.type == 'STRING':
             self.consume('STRING')
             return StringNode(token.value)
+        elif token.type == 'LBRACKET':
+            return self.parse_array()
         elif token.type == 'LPAREN':
             self.consume('LPAREN')
             node = self.comparison()
@@ -107,6 +109,8 @@ class Parser:
             return node
         elif token.type == 'NEW':
             return self.parse_new()
+        elif token.type == 'LAMBDA':
+            return self.parse_lambda()
         elif token.type == 'CLASS':
             return self.parse_class()
         elif token.type == 'LBRACE':
@@ -262,3 +266,23 @@ class Parser:
         class_name = self.consume('IDENTIFIER').value
         args = self.parse_args()
         return NewNode(class_name, args)
+
+    def parse_array(self) -> ArrayNode:
+        self.consume('LBRACKET')
+        elements = []
+        if self.peek().type != 'RBRACKET':
+            while True:
+                elements.append(self.comparison())
+                if self.peek().type == 'COMMA':
+                    self.consume('COMMA')
+                else:
+                    break
+        self.consume('RBRACKET')
+        return ArrayNode(elements)
+
+    def parse_lambda(self) -> LambdaNode:
+        self.consume('LAMBDA')
+        param = self.consume('IDENTIFIER').value
+        self.consume('ARROW')
+        body = self.comparison()
+        return LambdaNode(param, body)

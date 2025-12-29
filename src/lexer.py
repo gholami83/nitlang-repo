@@ -37,7 +37,7 @@ TOKENS = [
     ('RPAREN', r'\)'),
     ('COMMA', r','),
     ('DOT', r'\.'),
-    ('ARROW', r'->'),        
+    ('ARROW', r'->'),
     ('COLON', r':'),
     ('WHITESPACE', r'\s+'),
 ]

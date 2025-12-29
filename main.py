@@ -1,6 +1,7 @@
 from src.lexer import tokenize
 from src.parser import Parser
-from src.evaluator import evaluate, create_global_env
+from src.compiler import Compiler
+from src.vm import VirtualMachine
 
 
 def run(code: str):
@@ -11,27 +12,23 @@ def run(code: str):
     ast = parser.parse()
     print(f"AST: {ast}\n")
 
-    env = create_global_env()
-    result = evaluate(ast, env)
+    compiler = Compiler()
+    vm_code = compiler.compile(ast)
+    print(f"VM Code:\n{vm_code}\n")
+
+    vm = VirtualMachine()
+    vm.code = vm_code
+    print("Executing VM...")
+    result = vm.execute()
     print(f"Result: {result}\n")
     return result
 
 
 if __name__ == "__main__":
     test_code = """
-let global_factor = 2
-let call_count = 0
-let call_ref = ref call_count
-
-let process = lambda x -> {
-    call_ref := call_ref + 1
-    x * global_factor
-}
-
-let numbers = [1, 2, 3, 4, 5]
-let processed = map(process, numbers)
-
-processed[0] + processed[1] + call_count
+    let x = 5
+    let y = 10
+    x + y
     """
 
     try:

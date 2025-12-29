@@ -1,6 +1,7 @@
 from typing import Any
 from .ast_nodes import ASTNode, NumberNode, StringNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, \
-    LetNode, BlockNode, RefNode, AssignRefNode, AssignNode, ClassNode, NewNode, MethodCallNode, FieldAccessNode
+    LetNode, BlockNode, RefNode, AssignRefNode, AssignNode, ClassNode, NewNode, MethodCallNode, FieldAccessNode, \
+    ArrayNode, LambdaNode
 
 
 class Environment:
@@ -39,6 +40,17 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         for node in node_or_nodes:
             result = evaluate(node, env)
         return result
+
+    if isinstance(node_or_nodes, ArrayNode):
+        return [evaluate(elem, env) for elem in node_or_nodes.elements]
+
+    if isinstance(node_or_nodes, LambdaNode):
+        def lambda_func(args):
+            local_env = Environment(env)
+            local_env.set(node_or_nodes.param, args[0])
+            return evaluate(node_or_nodes.body, local_env)
+
+        return lambda_func
 
     if isinstance(node_or_nodes, NumberNode):
         return node_or_nodes.value
@@ -99,6 +111,9 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
     elif isinstance(node_or_nodes, CallNode):
         func = env.get(node_or_nodes.name)
         if not isinstance(func, FunctionNode):
+            if callable(func):
+                args = [evaluate(arg, env) for arg in node_or_nodes.args]
+                return func(args)
             raise TypeError(f"{node_or_nodes.name} is not a function")
         args = [evaluate(arg, env) for arg in node_or_nodes.args]
         if len(args) != len(func.params):
@@ -272,3 +287,15 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
 
     else:
         raise TypeError(f"Unknown node type: {type(node_or_nodes)}")
+
+
+def builtin_map(args):
+    func = args[0]
+    arr = args[1]
+    return [func([x]) for x in arr]
+
+
+def create_global_env():
+    env = Environment()
+    env.set('map', builtin_map)
+    return env

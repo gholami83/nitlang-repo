@@ -139,3 +139,18 @@ class FieldAccessNode(ASTNode):
 
     def __repr__(self):
         return f"FieldAccessNode({self.obj}, {self.field_name})"
+
+class ArrayNode(ASTNode):
+    def __init__(self, elements: list):
+        self.elements = elements
+
+    def __repr__(self):
+        return f"ArrayNode({self.elements})"
+
+class LambdaNode(ASTNode):
+    def __init__(self, param: str, body: ASTNode):
+        self.param = param
+        self.body = body
+
+    def __repr__(self):
+        return f"LambdaNode({self.param}, {self.body})"

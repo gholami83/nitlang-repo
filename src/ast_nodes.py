@@ -84,19 +84,19 @@ class BlockNode(ASTNode):
         return f"BlockNode({self.statements})"
 
 class RefNode(ASTNode):
-    def __init__(self, name: str):
-        self.name = name
+    def __init__(self, expr: ASTNode):
+        self.expr = expr
 
     def __repr__(self):
-        return f"RefNode({self.name})"
+        return f"RefNode({self.expr})"
 
 class AssignRefNode(ASTNode):
-    def __init__(self, ref: ASTNode, value: ASTNode):
-        self.ref = ref
+    def __init__(self, ref_expr: ASTNode, value: ASTNode):
+        self.ref_expr = ref_expr
         self.value = value
 
     def __repr__(self):
-        return f"AssignRefNode({self.ref}, {self.value})"
+        return f"AssignRefNode({self.ref_expr}, {self.value})"
 
 class ClassNode(ASTNode):
     def __init__(self, name: str, fields: list, methods: dict):
@@ -139,3 +139,26 @@ class FieldAccessNode(ASTNode):
 
     def __repr__(self):
         return f"FieldAccessNode({self.obj}, {self.field_name})"
+
+class ArrayNode(ASTNode):
+    def __init__(self, elements: list):
+        self.elements = elements
+
+    def __repr__(self):
+        return f"ArrayNode({self.elements})"
+
+class LambdaNode(ASTNode):
+    def __init__(self, param: str, body: ASTNode):
+        self.param = param
+        self.body = body
+
+    def __repr__(self):
+        return f"LambdaNode({self.param}, {self.body})"
+
+class IndexNode(ASTNode):
+    def __init__(self, array: ASTNode, index: ASTNode):
+        self.array = array
+        self.index = index
+
+    def __repr__(self):
+        return f"IndexNode({self.array}, {self.index})"

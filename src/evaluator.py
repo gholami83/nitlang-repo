@@ -1,6 +1,7 @@
 from typing import Any
 from .ast_nodes import ASTNode, NumberNode, StringNode, BinaryOpNode, FunctionNode, CallNode, IfNode, VariableNode, \
-    LetNode, BlockNode, RefNode, AssignRefNode, AssignNode, ClassNode, NewNode, MethodCallNode, FieldAccessNode
+    LetNode, BlockNode, RefNode, AssignRefNode, AssignNode, ClassNode, NewNode, MethodCallNode, FieldAccessNode, \
+    ArrayNode, LambdaNode, IndexNode
 
 
 class Environment:
@@ -27,10 +28,11 @@ class Environment:
 
 
 class ObjectInstance:
-    def __init__(self, class_name: str, fields: dict, methods: dict):
+    def __init__(self, class_name: str, fields: dict, methods: dict, field_env=None):
         self.class_name = class_name
         self.fields = fields
         self.methods = methods
+        self.field_env = field_env
 
 
 def evaluate(node_or_nodes, env: Environment) -> Any:
@@ -39,6 +41,30 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         for node in node_or_nodes:
             result = evaluate(node, env)
         return result
+
+    if isinstance(node_or_nodes, ArrayNode):
+        return [evaluate(elem, env) for elem in node_or_nodes.elements]
+
+    if isinstance(node_or_nodes, LambdaNode):
+        def lambda_func(args):
+            local_env = Environment(env)
+            local_env.set(node_or_nodes.param, args[0])
+            return evaluate(node_or_nodes.body, local_env)
+
+        return lambda_func
+
+    if isinstance(node_or_nodes, IndexNode):
+        array_val = evaluate(node_or_nodes.array, env)
+        index_val = evaluate(node_or_nodes.index, env)
+
+        if not isinstance(array_val, list):
+            raise TypeError("Indexing only supported on arrays")
+        if not isinstance(index_val, int):
+            raise TypeError("Array index must be an integer")
+        if index_val < 0 or index_val >= len(array_val):
+            raise IndexError(f"Array index {index_val} out of bounds")
+
+        return array_val[index_val]
 
     if isinstance(node_or_nodes, NumberNode):
         return node_or_nodes.value
@@ -99,6 +125,9 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
     elif isinstance(node_or_nodes, CallNode):
         func = env.get(node_or_nodes.name)
         if not isinstance(func, FunctionNode):
+            if callable(func):
+                args = [evaluate(arg, env) for arg in node_or_nodes.args]
+                return func(args)
             raise TypeError(f"{node_or_nodes.name} is not a function")
         args = [evaluate(arg, env) for arg in node_or_nodes.args]
         if len(args) != len(func.params):
@@ -134,14 +163,12 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
 
             field_env.set(field_name, value)
 
-        fields = {}
-        for field_name in field_env.vars:
-            fields[field_name] = (field_env, field_name)
+        fields = field_env.vars.copy()
 
         class_env = Environment()
 
-        for field_name, (field_env, actual_name) in fields.items():
-            class_env.set(field_name, (field_env, actual_name))
+        for field_name, value in fields.items():
+            class_env.set(field_name, value)
 
         methods = {}
         for method_name, method_node in class_def.methods.items():
@@ -154,7 +181,8 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
             methods[method_name] = method_with_env
             class_env.set(method_name, method_with_env)
 
-        return ObjectInstance(class_def.name, fields, methods)
+        obj = ObjectInstance(class_def.name, fields, methods, field_env)
+        return obj
 
     elif isinstance(node_or_nodes, MethodCallNode):
         obj = evaluate(node_or_nodes.obj, env)
@@ -167,8 +195,8 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
 
         method_env = Environment(env)
 
-        for field_name, (field_env, actual_name) in obj.fields.items():
-            method_env.set(field_name, (field_env, actual_name))
+        for field_name, value in obj.fields.items():
+            method_env.set(field_name, value)
 
         for method_name, method_obj in obj.methods.items():
             method_env.set(method_name, method_obj)
@@ -178,6 +206,13 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
             method_env.set(param, arg)
 
         result = evaluate(method.body, method_env)
+
+        for field_name in obj.fields:
+            if field_name in method_env.vars:
+                obj.fields[field_name] = method_env.vars[field_name]
+                if obj.field_env:
+                    obj.field_env.set(field_name, method_env.vars[field_name])
+
         return result
 
     elif isinstance(node_or_nodes, FieldAccessNode):
@@ -187,42 +222,34 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         if node_or_nodes.field_name not in obj.fields:
             raise AttributeError(f"Field {node_or_nodes.field_name} not found")
 
-        field_env, field_name = obj.fields[node_or_nodes.field_name]
-        return field_env.get(field_name)
+        return obj.fields[node_or_nodes.field_name]
 
     elif isinstance(node_or_nodes, VariableNode):
         value = env.get(node_or_nodes.name)
 
-        if isinstance(value, tuple) and len(value) == 2:
-            field_env, field_name = value
-            return field_env.get(field_name)
-
-        return value
+        if isinstance(value, tuple) and len(value) == 2 and value[0] == "REF":
+            return value
+        else:
+            return value
 
     elif isinstance(node_or_nodes, AssignNode):
         value = evaluate(node_or_nodes.value, env)
 
         current_env = env
         found = False
+        target_env = None
+
         while current_env is not None:
             if node_or_nodes.name in current_env.vars:
                 found = True
+                target_env = current_env
                 break
             current_env = current_env.parent
 
         if not found:
             raise NameError(f"Variable '{node_or_nodes.name}' is not defined. Use 'let' to declare variables.")
 
-        try:
-            current_value = env.get(node_or_nodes.name)
-            if isinstance(current_value, tuple) and len(current_value) == 2:
-                field_env, field_name = current_value
-                field_env.set(field_name, value)
-                return None
-        except NameError:
-            pass
-
-        env.set(node_or_nodes.name, value)
+        target_env.set(node_or_nodes.name, value)
         return None
 
     elif isinstance(node_or_nodes, LetNode):
@@ -254,21 +281,49 @@ def evaluate(node_or_nodes, env: Environment) -> Any:
         return result
 
     elif isinstance(node_or_nodes, RefNode):
-        return env.get_var_ref(node_or_nodes.name)
+        expr = node_or_nodes.expr
+
+        if isinstance(expr, VariableNode):
+            return ("REF", env.get_var_ref(expr.name))
+
+        elif isinstance(expr, FieldAccessNode):
+            obj = evaluate(expr.obj, env)
+            field_name = expr.field_name
+
+            if not isinstance(obj, ObjectInstance):
+                raise TypeError("Can only access fields on objects")
+            if not hasattr(obj, 'field_env'):
+                raise AttributeError(f"Object does not have field environment")
+            if field_name not in obj.field_env.vars:
+                raise AttributeError(f"Field {field_name} not found")
+
+            return ("REF", (obj.field_env, field_name))
+
+        else:
+            raise TypeError("Only variable and field references are supported")
 
     elif isinstance(node_or_nodes, AssignRefNode):
-        left_node = node_or_nodes.ref
-        if not isinstance(left_node, VariableNode):
-            raise TypeError("Left side of ':=' must be a variable")
+        left_value = evaluate(node_or_nodes.ref_expr, env)
+        right_value = evaluate(node_or_nodes.value, env)
 
-        ref_value = env.get(left_node.name)
-        if not isinstance(ref_value, tuple) or len(ref_value) != 2:
-            raise TypeError(f"'{left_node.name}' is not a reference")
-
-        target_env, target_name = ref_value
-        new_value = evaluate(node_or_nodes.value, env)
-        target_env.set(target_name, new_value)
-        return None
+        if isinstance(left_value, tuple) and left_value[0] == "REF":
+            target_env, target_name = left_value[1]
+            target_env.set(target_name, right_value)
+            return None
+        else:
+            raise TypeError("Left side of ':=' must evaluate to a reference")
 
     else:
         raise TypeError(f"Unknown node type: {type(node_or_nodes)}")
+
+
+def builtin_map(args):
+    func = args[0]
+    arr = args[1]
+    return [func([x]) for x in arr]
+
+
+def create_global_env():
+    env = Environment()
+    env.set('map', builtin_map)
+    return env

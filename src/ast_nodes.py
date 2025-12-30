@@ -84,19 +84,19 @@ class BlockNode(ASTNode):
         return f"BlockNode({self.statements})"
 
 class RefNode(ASTNode):
-    def __init__(self, name: str):
-        self.name = name
+    def __init__(self, expr: ASTNode):
+        self.expr = expr
 
     def __repr__(self):
-        return f"RefNode({self.name})"
+        return f"RefNode({self.expr})"
 
 class AssignRefNode(ASTNode):
-    def __init__(self, ref: ASTNode, value: ASTNode):
-        self.ref = ref
+    def __init__(self, ref_expr: ASTNode, value: ASTNode):
+        self.ref_expr = ref_expr
         self.value = value
 
     def __repr__(self):
-        return f"AssignRefNode({self.ref}, {self.value})"
+        return f"AssignRefNode({self.ref_expr}, {self.value})"
 
 class ClassNode(ASTNode):
     def __init__(self, name: str, fields: list, methods: dict):

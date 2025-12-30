@@ -28,6 +28,10 @@ class Parser:
     def parse_program(self) -> list:
         statements = []
         while self.pos < len(self.tokens):
+            if self.peek().type == 'SEMICOLON':
+                self.consume('SEMICOLON')
+                continue
+
             if self.peek().type == 'CLASS':
                 stmt = self.parse_class()
                 statements.append(stmt)
@@ -37,6 +41,8 @@ class Parser:
             else:
                 stmt = self.statement()
                 statements.append(stmt)
+                if self.pos < len(self.tokens) and self.peek().type == 'SEMICOLON':
+                    self.consume('SEMICOLON')
         return statements
 
     def statement(self) -> ASTNode:
@@ -44,29 +50,27 @@ class Parser:
 
         if self.peek().type == 'IDENTIFIER':
             name_token = self.consume('IDENTIFIER')
-            if self.peek().type == 'ASSIGN_REF':
-                self.pos = pos_backup
-                return self.assignment_ref()
-            elif self.peek().type == 'ASSIGN':
-                self.pos = pos_backup
-                name = self.consume('IDENTIFIER').value
+            if self.peek().type == 'ASSIGN':
+                name = name_token.value
                 self.consume('ASSIGN')
                 value = self.comparison()
                 return AssignNode(name, value)
             else:
                 self.pos = pos_backup
 
-        return self.comparison()
+        expr = self.comparison()
 
-    def assignment_ref(self) -> ASTNode:
-        node = self.factor()
         if self.peek().type == 'ASSIGN_REF':
+            if not isinstance(expr, (VariableNode, FieldAccessNode, IndexNode)):
+                raise SyntaxError("Left side of ':=' must be a variable, field, or array element")
             self.consume('ASSIGN_REF')
             right = self.comparison()
-            if not isinstance(node, VariableNode):
-                raise SyntaxError("Left side of ':=' must be a variable")
-            return AssignRefNode(node, right)
-        return node
+            return AssignRefNode(expr, right)
+
+        return expr
+
+    def assignment_ref(self) -> ASTNode:
+        return self.comparison()
 
     def comparison(self) -> ASTNode:
         node = self.expr()
@@ -97,6 +101,12 @@ class Parser:
         if token.type == 'NUMBER':
             self.consume('NUMBER')
             return NumberNode(token.value)
+        elif token.type == 'TRUE':
+            self.consume('TRUE')
+            return NumberNode(1)
+        elif token.type == 'FALSE':
+            self.consume('FALSE')
+            return NumberNode(0)
         elif token.type == 'STRING':
             self.consume('STRING')
             return StringNode(token.value)
@@ -125,26 +135,29 @@ class Parser:
             name = token.value
             self.consume('IDENTIFIER')
 
-            node = VariableNode(name)
-
-            while self.peek().type == 'LBRACKET':
-                self.consume('LBRACKET')
-                index = self.comparison()
-                self.consume('RBRACKET')
-                node = IndexNode(node, index)
-
             if self.peek().type == 'LPAREN':
                 return CallNode(name, self.parse_args())
-            elif self.peek().type == 'DOT':
-                self.consume('DOT')
-                member_name = self.consume('IDENTIFIER').value
-                if self.peek().type == 'LPAREN':
-                    args = self.parse_args()
-                    return MethodCallNode(node, member_name, args)
+
+            node = VariableNode(name)
+
+            while True:
+                if self.peek().type == 'LBRACKET':
+                    self.consume('LBRACKET')
+                    index = self.comparison()
+                    self.consume('RBRACKET')
+                    node = IndexNode(node, index)
+                elif self.peek().type == 'DOT':
+                    self.consume('DOT')
+                    member_name = self.consume('IDENTIFIER').value
+                    if self.peek().type == 'LPAREN':
+                        args = self.parse_args()
+                        node = MethodCallNode(node, member_name, args)
+                    else:
+                        node = FieldAccessNode(node, member_name)
                 else:
-                    return FieldAccessNode(node, member_name)
-            else:
-                return node
+                    break
+
+            return node
         else:
             raise SyntaxError(f"Unexpected token in factor: {token}")
 
@@ -224,8 +237,20 @@ class Parser:
             self.consume('LPAREN')
             if self.peek().type != 'RPAREN':
                 while True:
-                    param = self.consume('IDENTIFIER').value
-                    params.append(param)
+                    param_name = self.consume('IDENTIFIER').value
+
+                    param_type = None
+                    if self.peek().type == 'COLON':
+                        self.consume('COLON')
+                        type_token = self.peek()
+                        if type_token.type in ('INT', 'BOOL', 'STRING_TYPE'):
+                            self.consume(type_token.type)
+                            param_type = type_token.value
+                        else:
+                            raise SyntaxError(f"Unknown type: {type_token.value}")
+
+                    params.append(param_name)
+
                     if self.peek().type == 'COMMA':
                         self.consume('COMMA')
                     else:
@@ -239,10 +264,13 @@ class Parser:
             body = self.comparison()
         return FunctionNode(name, params, body)
 
+
     def parse_ref(self) -> RefNode:
         self.consume('REF')
-        name = self.consume('IDENTIFIER').value
-        return RefNode(name)
+        expr = self.factor()
+        if not isinstance(expr, (VariableNode, FieldAccessNode, IndexNode)):
+            raise SyntaxError("Reference must be to a variable, field, or array element")
+        return RefNode(expr)
 
     def parse_class(self) -> ClassNode:
         self.consume('CLASS')
